@@ -13,10 +13,20 @@ settings:
     # certificate. Device builds sign normally with the settings on the target.
     CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]: "NO"
     CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]: "NO"
+packages:
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios
+    from: "5.89.0"
+
 targets:
   Kinward:
     type: application
     platform: iOS
+    dependencies:
+      - package: RevenueCat
+        product: RevenueCat
+      - package: RevenueCat
+        product: RevenueCatUI
     sources:
       - path: Kinward
     settings:

@@ -26,6 +26,8 @@ struct KinwardApp: App {
             )
         }
         Haptics.prepare()
+        // No-op until a key is dropped into Kinward/Resources/RevenueCat.plist.
+        Store.start()
     }
 
     var body: some Scene {

@@ -43,3 +43,7 @@ Secrets.xcconfig
 /*.png
 /*.PNG
 SourcePhotos/
+
+# The RevenueCat public SDK key. Technically safe to ship inside an app binary —
+# it is a publishable key, not the secret one — but it stays out of a public repo.
+Kinward/Resources/RevenueCat.plist
