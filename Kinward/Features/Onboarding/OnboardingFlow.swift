@@ -27,6 +27,7 @@ struct OnboardingFlow: View {
 
     // The opening button grows into the page and back out of it on the far side.
     @State private var wipeScale: CGFloat = 1
+    @State private var wipeOpacity: Double = 1
     @State private var wiping = false
 
     private let totalSteps = 8
@@ -88,6 +89,7 @@ struct OnboardingFlow: View {
                         .fill(.white)
                         .frame(width: CornerCTA.diameter, height: CornerCTA.diameter)
                         .scaleEffect(wipeScale)
+                        .opacity(wipeOpacity)
                         // Exactly where the disc sits, so it grows out of the button
                         // and settles back onto the next one.
                         .position(x: geo.size.width - CornerCTA.centreInsetX,
@@ -155,14 +157,26 @@ struct OnboardingFlow: View {
     private func advanceWithWipe() {
         guard !wiping else { return }
         Haptics.settle()
+        let next = min(step + 1, totalSteps - 1)
+        // Only the cinematic pair has a disc to close back onto. Landing on paper,
+        // the white has to dissolve into the page instead, while the page's own
+        // pieces arrive under it.
+        let landsOnDisc = next <= 1
+
         wipeScale = 1
+        wipeOpacity = 1
         wiping = true
-        withAnimation(.easeIn(duration: 0.36)) { wipeScale = CornerCTA.coveringScale }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
+        withAnimation(.easeIn(duration: 0.24)) { wipeScale = CornerCTA.coveringScale }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
             // No animation on the step itself: the swap happens behind the white.
-            step = min(step + 1, totalSteps - 1)
-            withAnimation(.easeOut(duration: 0.46)) { wipeScale = 1 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) { wiping = false }
+            step = next
+            if landsOnDisc {
+                withAnimation(.easeOut(duration: 0.28)) { wipeScale = 1 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { wiping = false }
+            } else {
+                withAnimation(.easeOut(duration: 0.32)) { wipeOpacity = 0 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) { wiping = false }
+            }
         }
     }
 
@@ -190,11 +204,11 @@ struct OnboardingFlow: View {
                 )
 
             VStack(alignment: .leading, spacing: 0) {
-                Reveal(delay: 0.12) {
+                Reveal(delay: 0.05) {
                     Text(eyebrow).eyebrowStyle(.white.opacity(0.75))
                 }
                 .padding(.top, 70)
-                Reveal(delay: 0.28) {
+                Reveal(delay: 0.13) {
                     Text(headline)
                         .font(.serif(38))
                         .foregroundStyle(.white)
@@ -203,7 +217,7 @@ struct OnboardingFlow: View {
                         .shadow(color: .black.opacity(0.45), radius: 18, y: 4)
                         .padding(.top, 20)
                 }
-                Reveal(delay: 0.42) {
+                Reveal(delay: 0.21) {
                     Text(body)
                         .font(KType.body(16))
                         .foregroundStyle(.white.opacity(0.86))
@@ -213,7 +227,7 @@ struct OnboardingFlow: View {
                         .padding(.trailing, 12)
                 }
                 Spacer(minLength: 0)
-                Reveal(delay: 0.72) {
+                Reveal(delay: 0.34) {
                     Marginalia(text: marginalia, size: 17, color: .white.opacity(0.82))
                 }
                 // Clear of the disc in the corner.
@@ -237,20 +251,29 @@ struct OnboardingFlow: View {
         ZStack {
             PaperBackground()
             VStack(alignment: .leading, spacing: 0) {
-                Text(eyebrow).eyebrowStyle(K.gold).padding(.top, 62)
-                Text(headline)
-                    .font(.serif(31)).foregroundStyle(K.ink).lineSpacing(1)
-                    .padding(.top, 14)
-                Text(sub)
-                    .font(KType.body(15)).foregroundStyle(K.inkSoft).lineSpacing(3)
-                    .padding(.top, 12)
+                Reveal(delay: 0.04) {
+                    Text(eyebrow).eyebrowStyle(K.gold)
+                }
+                .padding(.top, 62)
+                Reveal(delay: 0.10) {
+                    Text(headline)
+                        .font(.serif(31)).foregroundStyle(K.ink).lineSpacing(1)
+                }
+                .padding(.top, 14)
+                Reveal(delay: 0.16) {
+                    Text(sub)
+                        .font(KType.body(15)).foregroundStyle(K.inkSoft).lineSpacing(3)
+                }
+                .padding(.top, 12)
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        FlowChips(options: options, selection: selection)
+                        FlowChips(options: options, selection: selection, stagger: true)
                             .padding(.top, 26)
-                        Marginalia(text: note, size: 17)
-                            .padding(.top, 34)
+                        Reveal(delay: 0.46) {
+                            Marginalia(text: note, size: 17)
+                        }
+                        .padding(.top, 34)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 20)
@@ -616,9 +639,12 @@ private struct Reveal<Content: View>: View {
     var body: some View {
         content
             .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 16)
+            .offset(y: shown ? 0 : 12)
+            // Scaled from the leading edge, so the left margin never moves and only
+            // the weight of the line changes.
+            .scaleEffect(shown ? 1 : 0.96, anchor: .leading)
             .onAppear {
-                withAnimation(.timingCurve(0.2, 0.85, 0.2, 1, duration: 0.9).delay(delay)) {
+                withAnimation(.spring(response: 0.40, dampingFraction: 0.68).delay(delay)) {
                     shown = true
                 }
             }
@@ -656,9 +682,13 @@ private struct CinematicPlate: View {
 struct FlowChips: View {
     let options: [String]
     @Binding var selection: Set<String>
+    /// Chips land one after another, so a page of them assembles rather than appears.
+    var stagger: Bool = false
+    @State private var shown = false
+
     var body: some View {
         FlowLayout(spacing: 9) {
-            ForEach(options, id: \.self) { o in
+            ForEach(Array(options.enumerated()), id: \.element) { i, o in
                 let on = selection.contains(o)
                 Button {
                     Haptics.tap()
@@ -676,8 +706,13 @@ struct FlowChips: View {
                         .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
                 }
                 .buttonStyle(.plain)
+                .opacity(!stagger || shown ? 1 : 0)
+                .scaleEffect(!stagger || shown ? 1 : 0.88)
+                .animation(.spring(response: 0.36, dampingFraction: 0.66)
+                    .delay(0.16 + Double(i) * 0.032), value: shown)
             }
         }
+        .onAppear { shown = true }
     }
 }
 
