@@ -25,6 +25,10 @@ struct OnboardingFlow: View {
     @State private var showRecorder = false
     @State private var savedRecording: VoiceRecording?
 
+    // The opening button grows into the page and back out of it on the far side.
+    @State private var wipeScale: CGFloat = 1
+    @State private var wiping = false
+
     private let totalSteps = 8
 
     var body: some View {
@@ -51,20 +55,23 @@ struct OnboardingFlow: View {
                             sub: "Pick anything that feels true. You can change this later.",
                             options: ["My childhood", "What I learned", "Things I wish I'd known", "People who shaped me",
                                       "Family history", "My favourite memories", "My voice", "Stories about my grandparents"],
-                            selection: $know)
+                            selection: $know,
+                            note: "There are no\nwrong answers here.")
             case 3: chooser(eyebrow: "Step two",
                             headline: "Some things are\nmeant to be remembered.",
                             sub: "What should outlast you?",
                             options: ["Family traditions", "Places that matter", "People you should never forget",
                                       "Moments that changed you", "What you're proud of", "What you regret",
                                       "Stories that should not disappear"],
-                            selection: $remember)
+                            selection: $remember,
+                            note: "Whatever you pick,\nyou can change later.")
             case 4: chooser(eyebrow: "Step three",
                             headline: "And some things\nmay help them one day.",
                             sub: "Practical things. Only if and when you're ready.",
                             options: ["Important documents", "Property", "Insurance", "Financial instructions",
                                       "Digital accounts", "Personal belongings"],
-                            selection: $practical)
+                            selection: $practical,
+                            note: "Only if and when\nyou are ready.")
             case 5: peopleStep
             case 6: firstThingStep
             default: closingStep
@@ -74,8 +81,26 @@ struct OnboardingFlow: View {
                 progress
                 Spacer()
             }
+
+            if wiping {
+                GeometryReader { geo in
+                    Circle()
+                        .fill(.white)
+                        .frame(width: CornerCTA.diameter, height: CornerCTA.diameter)
+                        .scaleEffect(wipeScale)
+                        // Exactly where the disc sits, so it grows out of the button
+                        // and settles back onto the next one.
+                        .position(x: geo.size.width - CornerCTA.centreInsetX,
+                                  y: geo.size.height - CornerCTA.centreInsetY)
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
         }
         .animation(KMotion.calm, value: step)
+        // The first two screens and the last are dark. The status bar has to follow
+        // them, or the clock and battery render black on a night sky.
+        .preferredColorScheme(step <= 1 || step == totalSteps - 1 ? .dark : .light)
         .onAppear(perform: prime)
         .sheet(isPresented: $showRecorder) {
             VoiceRecorderSheet(presetTitle: firstQuestion.text) { rec in
@@ -123,6 +148,22 @@ struct OnboardingFlow: View {
     private func advance() {
         Haptics.settle()
         withAnimation(KMotion.calm) { step = min(step + 1, totalSteps - 1) }
+    }
+
+    /// The disc opens until it is the whole page, the page changes behind the white,
+    /// and then it closes again onto the disc on the other side.
+    private func advanceWithWipe() {
+        guard !wiping else { return }
+        Haptics.settle()
+        wipeScale = 1
+        wiping = true
+        withAnimation(.easeIn(duration: 0.36)) { wipeScale = CornerCTA.coveringScale }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
+            // No animation on the step itself: the swap happens behind the white.
+            step = min(step + 1, totalSteps - 1)
+            withAnimation(.easeOut(duration: 0.46)) { wipeScale = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.46) { wiping = false }
+        }
     }
 
     // MARK: Screens
@@ -182,7 +223,7 @@ struct OnboardingFlow: View {
             .padding(.horizontal, 28)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            CornerCTA(title: cta, motion: button, action: advance)
+            CornerCTA(title: cta, motion: button, action: advanceWithWipe)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .ignoresSafeArea()
         }
@@ -191,7 +232,8 @@ struct OnboardingFlow: View {
     }
 
     private func chooser(eyebrow: String, headline: String, sub: String,
-                         options: [String], selection: Binding<Set<String>>) -> some View {
+                         options: [String], selection: Binding<Set<String>>,
+                         note: String) -> some View {
         ZStack {
             PaperBackground()
             VStack(alignment: .leading, spacing: 0) {
@@ -204,9 +246,14 @@ struct OnboardingFlow: View {
                     .padding(.top, 12)
 
                 ScrollView(showsIndicators: false) {
-                    FlowChips(options: options, selection: selection)
-                        .padding(.top, 26)
-                        .padding(.bottom, 20)
+                    VStack(alignment: .leading, spacing: 0) {
+                        FlowChips(options: options, selection: selection)
+                            .padding(.top, 26)
+                        Marginalia(text: note, size: 17)
+                            .padding(.top, 34)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 20)
                 }
 
                 KButton(title: selection.wrappedValue.isEmpty ? "Skip for now" : "Continue",
@@ -304,6 +351,7 @@ struct OnboardingFlow: View {
                isPresented: Binding(get: { addingRelationship != nil },
                                     set: { if !$0 { addingRelationship = nil } })) {
             TextField("Their name", text: $addName)
+                .textInputAutocapitalization(.words)
             Button("Add") {
                 if !addName.trimmingCharacters(in: .whitespaces).isEmpty, let rel = addingRelationship {
                     newPeople.append((addName.trimmingCharacters(in: .whitespaces), rel))
@@ -311,6 +359,8 @@ struct OnboardingFlow: View {
                 }
                 addingRelationship = nil
             }
+            // Without this both buttons read as equally inert; the default one is bold.
+            .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) { addingRelationship = nil }
         } message: {
             Text("Their name is all Kinward needs for now.")
@@ -321,31 +371,36 @@ struct OnboardingFlow: View {
         ZStack {
             PaperBackground()
             VStack(alignment: .leading, spacing: 0) {
-                Text("Start with one thing").eyebrowStyle(K.gold).padding(.top, 62)
-                Text("What is one thing about your life you hope your family never forgets?")
-                    .font(.serif(28)).foregroundStyle(K.ink).lineSpacing(2)
-                    .padding(.top, 14)
+                // Scrolls, so the keyboard pushes the writing rather than the screen.
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Start with one thing").eyebrowStyle(K.gold).padding(.top, 62)
+                        Text("What is one thing about your life you hope your family never forgets?")
+                            .font(.serif(28)).foregroundStyle(K.ink).lineSpacing(2)
+                            .padding(.top, 14)
 
-                KTextArea(placeholder: "You don't have to write it well. Just write it.",
-                          text: $firstAnswer, minHeight: 190, font: KType.body(16))
-                    .padding(.top, 24)
+                        KTextArea(placeholder: "You don't have to write it well. Just write it.",
+                                  text: $firstAnswer, minHeight: 190, font: KType.body(16))
+                            .padding(.top, 24)
 
-                Button {
-                    Haptics.tap(); showRecorder = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "mic").font(.system(size: 14, weight: .light))
-                        Text("Or record your voice instead").font(KType.body(14.5))
+                        Button {
+                            Haptics.tap(); showRecorder = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "mic").font(.system(size: 14, weight: .light))
+                                Text("Or record your voice instead").font(KType.body(14.5))
+                            }
+                            .foregroundStyle(K.ink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Capsule().fill(K.surface).overlay(Capsule().strokeBorder(K.border, lineWidth: 0.8)))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 14)
                     }
-                    .foregroundStyle(K.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Capsule().fill(K.surface).overlay(Capsule().strokeBorder(K.border, lineWidth: 0.8)))
+                    .padding(.bottom, 18)
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 14)
-
-                Spacer()
+                // Pinned below the scroll, so it is never under the keys.
                 KButton(title: firstAnswer.isEmpty ? "Do this later" : "Keep it",
                         style: firstAnswer.isEmpty ? .quiet : .primary) { advance() }
                     .padding(.bottom, 34)
@@ -441,9 +496,17 @@ struct CornerCTA: View {
     @State private var pressed = false
     @State private var arrived = false
 
-    private let d: CGFloat = 168
-    /// How far the disc runs past the right and bottom edges.
-    private let bleed = CGSize(width: 28, height: 22)
+    /// Shared with the onboarding wipe, which has to start exactly where this sits.
+    static let diameter: CGFloat = 168
+    static let bleedX: CGFloat = 28
+    static let bleedY: CGFloat = 22
+    static var centreInsetX: CGFloat { diameter / 2 - bleedX }
+    static var centreInsetY: CGFloat { diameter / 2 - bleedY }
+    /// Enough to cover the far corner of the largest phone from down here.
+    static let coveringScale: CGFloat = 11
+
+    private var d: CGFloat { Self.diameter }
+    private var bleed: CGSize { CGSize(width: Self.bleedX, height: Self.bleedY) }
 
     var body: some View {
         ZStack {

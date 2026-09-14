@@ -37,6 +37,7 @@ struct MemoriesView: View {
             .padding(.bottom, 190)
         }
         .background(PaperBackground())
+        .overlay(alignment: .top) { StatusBarScrim() }
         .sheet(item: $editing) { m in MemoryEditor(memory: m) }
         .sheet(isPresented: $showRecorder) { VoiceRecorderSheet() }
     }
@@ -58,6 +59,7 @@ struct MemoriesView: View {
             }
             .padding(.vertical, 2)
         }
+        .fadingTrailingEdge()
     }
 
     @ViewBuilder

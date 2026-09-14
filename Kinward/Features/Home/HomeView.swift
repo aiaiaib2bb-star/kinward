@@ -35,6 +35,9 @@ struct HomeView: View {
             .padding(.bottom, 190)
         }
         .background(PaperBackground())
+        // Content scrolls the full height, so give the status bar something to sit on
+        // instead of letting tile edges collide with the clock.
+        .overlay(alignment: .top) { StatusBarScrim() }
         .onAppear { question = QuestionBank.next(for: profile) }
         .sheet(item: $answering) { q in AnswerQuestionSheet(question: q, profile: profile) }
         .sheet(item: $openMemory) { m in MemoryEditor(memory: m) }
@@ -53,8 +56,16 @@ struct HomeView: View {
                             Image(uiImage: img).resizable().scaledToFill()
                         } else {
                             LinearGradient(colors: [K.gold.opacity(0.8), K.sage], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            Text(String(profile.displayName.prefix(1)).uppercased())
-                                .font(.serif(19)).foregroundStyle(.white)
+                            // `displayName` falls back to "there", and an initial taken
+                            // from that renders a meaningless "T". Show a figure instead.
+                            if profile.firstName.isEmpty {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 19, weight: .light))
+                                    .foregroundStyle(.white.opacity(0.9))
+                            } else {
+                                Text(String(profile.firstName.prefix(1)).uppercased())
+                                    .font(.serif(19)).foregroundStyle(.white)
+                            }
                         }
                     }
                     .frame(width: 50, height: 50)
@@ -308,7 +319,9 @@ struct HomeView: View {
                             VStack(spacing: 8) {
                                 PersonAvatar(person: p, size: 62)
                                 Text(p.name).font(KType.caption(12.5)).foregroundStyle(K.ink).lineLimit(1)
-                                Text("\(p.pieceCount)").font(KType.caption(11)).foregroundStyle(K.inkFaint)
+                                if p.pieceCount > 0 {
+                                    Text("\(p.pieceCount)").font(KType.caption(11)).foregroundStyle(K.inkFaint)
+                                }
                             }
                             .frame(width: 72)
                         }

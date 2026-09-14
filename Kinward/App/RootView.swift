@@ -15,6 +15,7 @@ struct RootView: View {
             if let p = profile {
                 if p.hasOnboarded {
                     main(profile: p)
+                        .preferredColorScheme(.light)
                         .transition(.opacity)
                 } else {
                     OnboardingFlow(profile: p) {
@@ -24,6 +25,7 @@ struct RootView: View {
                 }
             } else {
                 PaperBackground().overlay(ProgressView().tint(K.sage))
+                    .preferredColorScheme(.light)
             }
         }
         .animation(KMotion.calm, value: profile?.hasOnboarded)

@@ -319,3 +319,31 @@ struct FormLabel: View {
         Text(text).eyebrowStyle(K.inkFaint).padding(.leading, 2)
     }
 }
+
+/// A short wash under the status bar. Content in this app scrolls the whole height
+/// of the screen, and without it a card edge or an icon collides with the clock.
+struct StatusBarScrim: View {
+    var body: some View {
+        GeometryReader { geo in
+            LinearGradient(colors: [K.bg, K.bg.opacity(0.92), K.bg.opacity(0)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: geo.safeAreaInsets.top + 6)
+                .ignoresSafeArea()
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+extension View {
+    /// Fades a horizontally scrolling row out at the edges, so a half-cut chip reads
+    /// as "there is more" rather than as a clipping bug.
+    func fadingTrailingEdge() -> some View {
+        mask(
+            LinearGradient(stops: [
+                .init(color: .black, location: 0),
+                .init(color: .black, location: 0.90),
+                .init(color: .black.opacity(0), location: 1)
+            ], startPoint: .leading, endPoint: .trailing)
+        )
+    }
+}

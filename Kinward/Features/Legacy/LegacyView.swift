@@ -34,6 +34,7 @@ struct LegacyView: View {
             .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
         }
         .background(PaperBackground())
+        .overlay(alignment: .top) { StatusBarScrim() }
         .sheet(item: $capsuleFor) { p in CapsuleBuilder(person: p) }
         .sheet(item: $previewFor) { p in CapsuleRecipientPreview(person: p) }
         .sheet(isPresented: $showFamily) { FamilyHistoryView() }
@@ -124,7 +125,7 @@ struct LegacyView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("The book of your life")
                             .font(.serif(20)).foregroundStyle(K.ink)
-                        Text("\(totalPieces) pieces, read end to end the way a family would.")
+                        Text("\(totalPieces) \(totalPieces == 1 ? "piece" : "pieces"), read end to end the way a family would.")
                             .font(KType.caption(13)).foregroundStyle(K.inkSoft)
                             .multilineTextAlignment(.leading)
                     }

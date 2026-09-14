@@ -64,6 +64,7 @@ struct PeopleView: View {
             .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
         }
         .background(PaperBackground())
+        .overlay(alignment: .top) { StatusBarScrim() }
         .sheet(item: $editing) { p in PersonEditor(person: p) }
         .sheet(item: $detail) { p in PersonDetail(person: p) }
         .sheet(isPresented: $showTree) { FamilyTreeView() }

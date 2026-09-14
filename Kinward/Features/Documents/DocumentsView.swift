@@ -50,6 +50,7 @@ struct DocumentsView: View {
             .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
         }
         .background(PaperBackground())
+        .overlay(alignment: .top) { StatusBarScrim() }
         .task {
             if !unlockTried { unlockTried = true; _ = await gate.unlock(reason: "Open your documents") }
         }
@@ -71,6 +72,7 @@ struct DocumentsView: View {
             }
             .padding(.vertical, 2)
         }
+        .fadingTrailingEdge()
     }
     private func chip(_ t: String, on: Bool, action: @escaping () -> Void) -> some View {
         Button { Haptics.tap(); withAnimation(KMotion.gentle) { action() } } label: {

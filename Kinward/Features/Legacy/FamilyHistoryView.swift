@@ -29,6 +29,7 @@ struct FamilyHistoryView: View {
                             }
                             .padding(.vertical, 2)
                         }
+        .fadingTrailingEdge()
 
                         if shown.isEmpty {
                             QuietEmptyState(icon: "tree",

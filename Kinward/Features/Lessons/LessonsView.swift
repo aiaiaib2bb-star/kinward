@@ -47,6 +47,7 @@ struct LessonsView: View {
             .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
         }
         .background(PaperBackground())
+        .overlay(alignment: .top) { StatusBarScrim() }
         .sheet(item: $editing) { l in LessonEditor(lesson: l) }
         .sheet(isPresented: $showPrompts) {
             PromptDeck(themes: [.lessons, .legacy, .work, .love]) { q in
@@ -94,6 +95,7 @@ struct LessonsView: View {
             }
             .padding(.vertical, 2)
         }
+        .fadingTrailingEdge()
     }
     private var usedCategories: [LessonCategory] {
         LessonCategory.allCases.filter { c in lessons.contains { $0.category == c } }

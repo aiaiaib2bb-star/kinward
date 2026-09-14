@@ -32,7 +32,6 @@ struct KinwardApp: App {
         WindowGroup {
             RootView()
                 .tint(K.sage)
-                .preferredColorScheme(.light)
         }
         .modelContainer(container)
     }
