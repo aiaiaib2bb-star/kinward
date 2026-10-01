@@ -34,7 +34,7 @@ enum PlusFeature: String, CaseIterable, Identifiable {
         case .legacyBook: "Everything you've kept, set as a book to be read years from now."
         case .passItOn:   "Hand what you've kept to your children, for them to hand to theirs."
         case .clearLook:  "Kinward the way the iPhone itself would make it, in light and dark."
-        case .icons:      "Eleven more for your home screen — pewter, marble, the seal and the rest."
+        case .icons:      "Eight more for your home screen — the house, the hands, the seal and the rest."
         }
     }
 
@@ -240,7 +240,7 @@ final class Store {
     }
 
     /// When Plus ends, what it added goes back to how Kinward comes: Paper, and the
-    /// leather icon. Nothing that was written or kept is touched.
+    /// sealed-letter icon. Nothing that was written or kept is touched.
     ///
     /// iOS only changes the home-screen icon for an app that is in front, so that
     /// part waits for the next time it is — RootView calls this again then.

@@ -99,7 +99,7 @@ RevenueCat SDK (`Services/Store.swift`).
 | Entitlement | `plus` |
 | Offering | `default`, with an **Annual** and a **3 Month** package |
 | Products | `com.ali.Kinward.plus.yearly` · $14.99 / year, `com.ali.Kinward.plus.quarterly` · $9.99 / 3 months |
-| What it unlocks | The book of your life, Pass it on, the Clear look, eleven alternate app icons |
+| What it unlocks | The book of your life, Pass it on, the Clear look, eight alternate app icons |
 | Always free | Every memory, letter, recording, lesson, document and family-tree entry, and sharing them |
 
 - **Prices come from the store.** Plans are built from `offerings.current.annual`
@@ -113,7 +113,7 @@ RevenueCat SDK (`Services/Store.swift`).
   answer is cached so a subscriber with no signal still has what they paid for.
   Purchases, restores and Ask to Buy all resolve through the same path.
 - **Lapse is gentle.** If Plus ends, the Clear look falls back to Paper and the
-  icon to the default leather one. Nothing anyone kept is touched.
+  icon to the default sealed letter. Nothing anyone kept is touched.
 - **The small print is in the app.** Renewal terms under the button, Restore
   purchases, and the Terms of Use and Privacy Policy as readable pages in the app
   itself (Settings → *Terms & privacy*), built from the same `Legal.json` as the
@@ -250,7 +250,7 @@ look ahead to show the whole app at any age.
 
 **A first-run tour** — a short spotlight walk around Home, shown once, replayable.
 
-**Twelve app icons** — the default leather relief and eleven alternates.
+**Nine app icons** — the default sealed letter and eight alternates.
 
 ---
 

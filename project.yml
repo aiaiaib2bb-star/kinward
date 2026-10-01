@@ -68,7 +68,7 @@ targets:
         # Alternate icons the user picks in Settings. Listing them here lets
         # Xcode write the CFBundleAlternateIcons entries itself, which matters
         # because the Info.plist is generated rather than checked in.
-        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: Pewter Marble House Letter Hands Window Bust Seal Hourglass Compass Arch
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: House Hands Window Bust Seal Hourglass Compass Arch
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
         TARGETED_DEVICE_FAMILY: "1"

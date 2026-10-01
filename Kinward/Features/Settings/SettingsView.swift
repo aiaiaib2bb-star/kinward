@@ -553,7 +553,7 @@ struct SettingsView: View {
                     }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(option.title).font(KType.body(14).weight(on ? .medium : .regular))
-                        .foregroundStyle(K.ink).lineLimit(1)
+                        .foregroundStyle(K.ink).lineLimit(1).minimumScaleFactor(0.8)
                     Text(option.note).font(KType.caption(11)).foregroundStyle(K.inkSoft)
                         .lineLimit(2).multilineTextAlignment(.leading)
                 }

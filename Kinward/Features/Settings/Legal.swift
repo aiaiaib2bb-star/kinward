@@ -2,25 +2,26 @@ import SwiftUI
 
 // MARK: - Who publishes Kinward
 //
-// Fill these in before submitting. They are the only things the privacy policy
-// and terms need that the code can't know. Until they are set, the documents
-// read "the developer named on Kinward's App Store page" and point people to the
-// App Store for contact, which is true but less helpful.
+// The only things the privacy policy and terms need that the code can't know. If
+// one is left nil the documents say so honestly ("the developer named on Kinward's
+// App Store page") instead of guessing.
 //
-// The website pages are made from the same text — see Website/make_pages.py.
+// The website pages are made from the same text — see Website/make_pages.py — and
+// the live ones are published at the two addresses below.
 
 enum Publisher {
-    /// Your name, or your company's, as it appears as the seller on the App Store.
-    static let name: String? = nil
+    /// The studio the app is published under.
+    static let name: String? = "Iosvisual"
     /// Where people write for help. Also goes in App Store Connect as support.
-    static let supportEmail: String? = nil
-    /// The country whose law the terms are under, as a phrase: "Germany",
-    /// "England and Wales", "the State of California".
-    static let lawOf: String? = nil
+    static let supportEmail: String? = "support@iosvisual.com"
+    /// The country whose law the terms are under.
+    static let lawOf: String? = "Italy"
+    /// Where the developer is based, said in the privacy policy.
+    static let basedIn: String? = "Italy"
     /// Where the same two documents are published. App Store Connect asks for the
     /// privacy policy's address; the terms are linked from the App Store listing.
-    static let privacyPage: URL? = nil
-    static let termsPage: URL? = nil
+    static let privacyPage: URL? = URL(string: "https://www.iosvisual.com/privacy/kinward")
+    static let termsPage: URL? = URL(string: "https://www.iosvisual.com/terms/kinward")
 }
 
 enum Links {
@@ -86,6 +87,7 @@ enum LegalDoc: String, Identifiable, CaseIterable {
         let law = Publisher.lawOf.map { "the laws of \($0)" }
             ?? "the laws of the country where \(developer) is established"
         return s.replacingOccurrences(of: "{developer}", with: developer)
+            .replacingOccurrences(of: "{based}", with: Publisher.basedIn.map { ", based in \($0)" } ?? "")
             .replacingOccurrences(of: "{contact}", with: contact)
             .replacingOccurrences(of: "{law}", with: law)
     }

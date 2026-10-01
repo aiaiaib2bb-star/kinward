@@ -29,6 +29,7 @@ def val(key, placeholder):
 NAME, NAME_PH = val("name", "Your name or company")
 EMAIL, EMAIL_PH = val("supportEmail", "support email")
 LAW, LAW_PH = val("lawOf", "your country")
+BASED = (PUB.get("basedIn") or "").strip() or None
 
 
 def developer():
@@ -45,6 +46,7 @@ def inline(text):
     out = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
                  lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>', out)
     out = out.replace("{developer}", developer())
+    out = out.replace("{based}", f", based in {html.escape(BASED)}" if BASED else "")
     out = out.replace("{contact}", f"Questions about this, or anything else? Write to {email_link()}.")
     out = out.replace("{law}", f"the laws of {html.escape(LAW) if LAW else LAW_PH}")
     return out
