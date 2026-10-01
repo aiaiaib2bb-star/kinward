@@ -81,7 +81,7 @@ struct CapsuleRecipientPreview: View {
                                 .background(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous).fill(K.paper))
                                 .overlay(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous)
                                     .strokeBorder(K.border, lineWidth: 0.8))
-                                .shadow(color: K.ink.opacity(0.07), radius: 16, y: 7)
+                                .shadow(color: K.shadowInk.opacity(0.07), radius: 16, y: 7)
                         }
 
                         if person.capsule?.includeLetters ?? true, let ls = person.letters, !ls.isEmpty {
@@ -191,6 +191,8 @@ struct CapsuleRecipientPreview: View {
 struct LetterReader: View {
     @Environment(\.dismiss) private var dismiss
     let letter: Letter
+    @AppStorage(LetterFace.storageKey) private var faceRaw = LetterFace.hand.rawValue
+    private var face: LetterFace { LetterFace(rawValue: faceRaw) ?? .hand }
 
     var body: some View {
         ZStack {
@@ -198,10 +200,10 @@ struct LetterReader: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     if !letter.salutation.isEmpty {
-                        Text(letter.salutation).font(.hand(23)).foregroundStyle(K.ink)
+                        Text(letter.salutation).font(face.font(23)).foregroundStyle(K.ink)
                     }
                     Text(letter.body.isEmpty ? "…" : letter.body)
-                        .font(.hand(20)).foregroundStyle(K.ink).lineSpacing(9)
+                        .font(face.font(20)).foregroundStyle(K.ink).lineSpacing(face.lineSpacing(9))
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     if !letter.photoRefs.isEmpty {
@@ -212,7 +214,7 @@ struct LetterReader: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 4))
                                     .padding(7)
                                     .background(RoundedRectangle(cornerRadius: 5).fill(Color.white))
-                                    .shadow(color: K.ink.opacity(0.18), radius: 9, y: 4)
+                                    .shadow(color: K.shadowInk.opacity(0.18), radius: 9, y: 4)
                                     .rotationEffect(.degrees(Double(i) * 5.5 - 4))
                             }
                         }
@@ -220,14 +222,14 @@ struct LetterReader: View {
                     }
 
                     if !letter.signature.isEmpty {
-                        Text(letter.signature).font(.hand(23)).foregroundStyle(K.ink).padding(.top, 4)
+                        Text(letter.signature).font(face.font(23)).foregroundStyle(K.ink).padding(.top, 4)
                     }
 
                     if let ref = letter.audioRef, MediaStore.exists(ref) {
                         Button { Haptics.tap(); VoicePlayer.shared.toggle(ref: ref) } label: {
                             HStack(spacing: 11) {
                                 Image(systemName: VoicePlayer.shared.playingRef == ref && VoicePlayer.shared.isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 12)).foregroundStyle(K.surface)
+                                    .font(.system(size: 12)).foregroundStyle(K.onAccent)
                                     .frame(width: 34, height: 34).background(Circle().fill(K.sageDeep))
                                 Text("Hear it read aloud").font(KType.body(14.5)).foregroundStyle(K.ink)
                                 Spacer()
@@ -244,8 +246,12 @@ struct LetterReader: View {
                     ZStack {
                         RoundedRectangle(cornerRadius: K.rLarge, style: .continuous).fill(K.paper)
                         GrainOverlay(opacity: 0.03).clipShape(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous))
+                        if !K.isClear {
+                            AgeMarks(age: K.age, salt: 0x1E77E7)
+                                .clipShape(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous))
+                        }
                     }
-                    .shadow(color: K.ink.opacity(0.12), radius: 26, y: 12)
+                    .shadow(color: K.shadowInk.opacity(0.12), radius: 26, y: 12)
                 )
                 .padding(.horizontal, 18).padding(.top, 16).padding(.bottom, 40)
             }
@@ -256,7 +262,7 @@ struct LetterReader: View {
                         Image(systemName: "xmark").font(.system(size: 13, weight: .medium))
                             .foregroundStyle(K.ink).frame(width: 36, height: 36)
                             .background(Circle().fill(K.surface.opacity(0.9)))
-                            .shadow(color: K.ink.opacity(0.08), radius: 6, y: 2)
+                            .shadow(color: K.shadowInk.opacity(0.08), radius: 6, y: 2)
                     }
                     .buttonStyle(.plain)
                 }

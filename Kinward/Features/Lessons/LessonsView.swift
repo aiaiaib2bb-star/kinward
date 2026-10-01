@@ -4,6 +4,7 @@ import SwiftData
 struct LessonsView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \Lesson.updatedAt, order: .reverse) private var lessons: [Lesson]
 
     @State private var editing: Lesson?
@@ -44,13 +45,13 @@ struct LessonsView: View {
                 categoriesBlock
                 Marginalia(text: KinwardSection.lessons.marginalia).padding(.top, 8)
             }
-            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
+            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }
         .sheet(item: $editing) { l in LessonEditor(lesson: l) }
         .sheet(isPresented: $showPrompts) {
-            PromptDeck(themes: [.lessons, .legacy, .work, .love]) { q in
+            PromptDeck(themes: [.lessons, .legacy, .belief, .hardship, .work, .love]) { q in
                 showPrompts = false
                 let l = Lesson(category: .whatLifeTaught)
                 l.prompt = q.text
@@ -103,7 +104,7 @@ struct LessonsView: View {
     private func chip(_ t: String, on: Bool, action: @escaping () -> Void) -> some View {
         Button { Haptics.tap(); withAnimation(KMotion.gentle) { action() } } label: {
             Text(t).font(KType.body(13.5))
-                .foregroundStyle(on ? K.surface : K.inkSoft)
+                .foregroundStyle(on ? K.onAccent : K.inkSoft)
                 .padding(.horizontal, 14).padding(.vertical, 9)
                 .background(Capsule().fill(on ? K.sageDeep : K.surface)
                     .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -198,7 +199,7 @@ struct LessonEditor: View {
                                     let on = lesson.category == c
                                     Button { Haptics.tap(); lesson.category = c } label: {
                                         Text(c.title).font(KType.body(13.5))
-                                            .foregroundStyle(on ? K.surface : K.inkSoft)
+                                            .foregroundStyle(on ? K.onAccent : K.inkSoft)
                                             .padding(.horizontal, 14).padding(.vertical, 9)
                                             .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                                 .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -211,7 +212,9 @@ struct LessonEditor: View {
 
                         FormLabel(text: "In one line")
                         TextField("", text: $lesson.headline,
-                                  prompt: Text("The thing itself").foregroundStyle(K.inkFaint.opacity(0.8)))
+                                  prompt: Text("The thing itself").foregroundStyle(K.inkFaint.opacity(0.8)),
+                                  axis: .vertical)
+                            .lineLimit(1...)
                             .font(.serif(22)).foregroundStyle(K.ink)
                             .padding(.horizontal, 16).padding(.vertical, 14)
                             .cardSurface(radius: 16)
@@ -224,7 +227,7 @@ struct LessonEditor: View {
                             HStack(spacing: 12) {
                                 Button { Haptics.tap(); VoicePlayer.shared.toggle(ref: ref) } label: {
                                     Image(systemName: VoicePlayer.shared.playingRef == ref && VoicePlayer.shared.isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 12)).foregroundStyle(K.surface)
+                                        .font(.system(size: 12)).foregroundStyle(K.onAccent)
                                         .frame(width: 34, height: 34).background(Circle().fill(K.sageDeep))
                                 }
                                 .buttonStyle(.plain)

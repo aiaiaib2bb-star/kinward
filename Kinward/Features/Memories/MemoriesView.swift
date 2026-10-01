@@ -4,6 +4,7 @@ import SwiftData
 struct MemoriesView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \MemoryEntry.createdAt, order: .reverse) private var memories: [MemoryEntry]
     @Query(sort: \VoiceRecording.createdAt, order: .reverse) private var recordings: [VoiceRecording]
 
@@ -34,7 +35,7 @@ struct MemoriesView: View {
             }
             .padding(.horizontal, 22)
             .padding(.top, 10)
-            .padding(.bottom, 190)
+            .padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }
@@ -49,7 +50,7 @@ struct MemoriesView: View {
                     Button { Haptics.tap(); withAnimation(KMotion.gentle) { mode = m } } label: {
                         Text(m.rawValue)
                             .font(KType.body(13.5))
-                            .foregroundStyle(mode == m ? K.surface : K.inkSoft)
+                            .foregroundStyle(mode == m ? K.onAccent : K.inkSoft)
                             .padding(.horizontal, 15).padding(.vertical, 9)
                             .background(Capsule().fill(mode == m ? K.sageDeep : K.surface)
                                 .overlay(Capsule().strokeBorder(mode == m ? .clear : K.border, lineWidth: 0.8)))
@@ -255,7 +256,7 @@ struct MemoryCard: View {
         .background(RoundedRectangle(cornerRadius: K.rCard, style: .continuous).fill(K.surface))
         .clipShape(RoundedRectangle(cornerRadius: K.rCard, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: K.rCard, style: .continuous).strokeBorder(K.border, lineWidth: 0.8))
-        .shadow(color: K.ink.opacity(0.05), radius: 14, y: 6)
+        .shadow(color: K.shadowInk.opacity(0.05), radius: 14, y: 6)
     }
 }
 

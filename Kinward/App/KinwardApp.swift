@@ -26,8 +26,9 @@ struct KinwardApp: App {
             )
         }
         Haptics.prepare()
-        // No-op until a key is dropped into Kinward/Resources/RevenueCat.plist.
-        Store.start()
+        // Purchases stay unconnected until a key is dropped into
+        // Kinward/Resources/RevenueCat.plist; Plus then reads as not bought.
+        Store.shared.start()
     }
 
     var body: some Scene {

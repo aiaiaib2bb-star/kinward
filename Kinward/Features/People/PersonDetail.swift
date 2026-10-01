@@ -121,7 +121,7 @@ struct PersonDetail: View {
                     person.accessRequestedAt = nil
                     try? ctx.save()
                 } label: {
-                    Text("Approve").font(KType.body(14)).foregroundStyle(K.surface)
+                    Text("Approve").font(KType.body(14)).foregroundStyle(K.onAccent)
                         .padding(.horizontal, 20).padding(.vertical, 10)
                         .background(Capsule().fill(K.sageDeep))
                 }
@@ -177,7 +177,7 @@ struct PersonDetail: View {
                 ZStack {
                     Circle().fill(K.sageDeep).frame(width: 46, height: 46)
                     Image(systemName: "circle.hexagongrid").font(.system(size: 17, weight: .light))
-                        .foregroundStyle(K.surface)
+                        .foregroundStyle(K.onAccent)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(person.capsule == nil ? "Build their capsule" : (person.capsule?.title ?? "Their capsule"))

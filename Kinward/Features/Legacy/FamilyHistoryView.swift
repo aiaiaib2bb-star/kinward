@@ -109,7 +109,7 @@ struct FamilyHistoryView: View {
     private func chip(_ t: String, on: Bool, action: @escaping () -> Void) -> some View {
         Button { Haptics.tap(); withAnimation(KMotion.gentle) { action() } } label: {
             Text(t).font(KType.body(13.5))
-                .foregroundStyle(on ? K.surface : K.inkSoft)
+                .foregroundStyle(on ? K.onAccent : K.inkSoft)
                 .padding(.horizontal, 14).padding(.vertical, 9)
                 .background(Capsule().fill(on ? K.sageDeep : K.surface)
                     .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -169,7 +169,7 @@ struct FamilyStoryCard: View {
         .background(RoundedRectangle(cornerRadius: K.rCard, style: .continuous).fill(K.surface))
         .clipShape(RoundedRectangle(cornerRadius: K.rCard, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: K.rCard, style: .continuous).strokeBorder(K.border, lineWidth: 0.8))
-        .shadow(color: K.ink.opacity(0.05), radius: 14, y: 6)
+        .shadow(color: K.shadowInk.opacity(0.05), radius: 14, y: 6)
     }
 }
 
@@ -203,7 +203,7 @@ struct FamilyStoryEditor: View {
                                     let on = story.generation == g
                                     Button { Haptics.tap(); story.generation = g } label: {
                                         Text(g).font(KType.body(13.5))
-                                            .foregroundStyle(on ? K.surface : K.inkSoft)
+                                            .foregroundStyle(on ? K.onAccent : K.inkSoft)
                                             .padding(.horizontal, 14).padding(.vertical, 9)
                                             .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                                 .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -233,7 +233,7 @@ struct FamilyStoryEditor: View {
                             HStack(spacing: 12) {
                                 Button { Haptics.tap(); VoicePlayer.shared.toggle(ref: ref) } label: {
                                     Image(systemName: VoicePlayer.shared.playingRef == ref && VoicePlayer.shared.isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 12)).foregroundStyle(K.surface)
+                                        .font(.system(size: 12)).foregroundStyle(K.onAccent)
                                         .frame(width: 34, height: 34).background(Circle().fill(K.sageDeep))
                                 }
                                 .buttonStyle(.plain)

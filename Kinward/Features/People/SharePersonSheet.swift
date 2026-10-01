@@ -168,7 +168,7 @@ struct SharePersonSheet: View {
                         Image(systemName: "square.and.arrow.up").font(.system(size: 13, weight: .medium))
                         Text("Send it").font(KType.body(16))
                     }
-                    .foregroundStyle(K.surface)
+                    .foregroundStyle(K.onAccent)
                     .frame(maxWidth: .infinity).padding(.vertical, 15)
                     .background(Capsule().fill(K.sageDeep))
                 }
@@ -181,10 +181,10 @@ struct SharePersonSheet: View {
         } else if let p = parcel, !p.isEmpty {
             Button(action: prepare) {
                 HStack(spacing: 8) {
-                    if working { ProgressView().tint(K.surface) }
+                    if working { ProgressView().tint(K.onAccent) }
                     Text(working ? "Gathering it up…" : "Prepare the parcel").font(KType.body(16))
                 }
-                .foregroundStyle(K.surface)
+                .foregroundStyle(K.onAccent)
                 .frame(maxWidth: .infinity).padding(.vertical, 15)
                 .background(Capsule().fill(K.sageDeep))
             }

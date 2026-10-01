@@ -12,6 +12,8 @@ struct LegacyBookView: View {
     @Query(sort: \FamilyStory.createdAt) private var stories: [FamilyStory]
     @Query(sort: \VoiceRecording.createdAt) private var recordings: [VoiceRecording]
     @Query(sort: \Person.createdAt) private var people: [Person]
+    @AppStorage(LetterFace.storageKey) private var faceRaw = LetterFace.hand.rawValue
+    private var face: LetterFace { LetterFace(rawValue: faceRaw) ?? .hand }
 
     private var name: String { profiles.first?.firstName ?? "" }
 
@@ -170,11 +172,11 @@ struct LegacyBookView: View {
                     Text(l.recipient.map { "To \($0.name)" } ?? (l.title.isEmpty ? "A letter" : l.title))
                         .font(.serif(20)).foregroundStyle(K.ink)
                     if !l.salutation.isEmpty {
-                        Text(l.salutation).font(.hand(18)).foregroundStyle(K.inkSoft)
+                        Text(l.salutation).font(face.font(18)).foregroundStyle(K.inkSoft)
                     }
-                    Text(l.body).font(.hand(17)).foregroundStyle(K.ink).lineSpacing(7)
+                    Text(l.body).font(face.font(17)).foregroundStyle(K.ink).lineSpacing(face.lineSpacing(7))
                     if !l.signature.isEmpty {
-                        Text(l.signature).font(.hand(18)).foregroundStyle(K.inkSoft).padding(.top, 4)
+                        Text(l.signature).font(face.font(18)).foregroundStyle(K.inkSoft).padding(.top, 4)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

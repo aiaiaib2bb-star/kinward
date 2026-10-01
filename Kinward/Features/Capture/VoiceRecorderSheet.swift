@@ -170,12 +170,12 @@ struct VoiceRecorderSheet: View {
         Button(action: { Haptics.settle(); action() }) {
             Image(systemName: icon)
                 .font(.system(size: size * 0.3, weight: .light))
-                .foregroundStyle(filled ? K.surface : K.ink)
+                .foregroundStyle(filled ? K.onAccent : K.ink)
                 .frame(width: size, height: size)
                 .background(
                     Circle().fill(filled ? K.sageDeep : K.surface)
                         .overlay(Circle().strokeBorder(filled ? .clear : K.border, lineWidth: 0.9))
-                        .shadow(color: K.ink.opacity(filled ? 0.2 : 0.06), radius: filled ? 16 : 6, y: 5)
+                        .shadow(color: K.shadowInk.opacity(filled ? 0.2 : 0.06), radius: filled ? 16 : 6, y: 5)
                 )
         }
         .buttonStyle(.plain)
@@ -213,7 +213,7 @@ struct PersonPickerRow: View {
         Button(action: { Haptics.tap(); action() }) {
             Text(label)
                 .font(KType.body(14))
-                .foregroundStyle(selected ? K.surface : K.ink)
+                .foregroundStyle(selected ? K.onAccent : K.ink)
                 .padding(.horizontal, 15).padding(.vertical, 9)
                 .background(Capsule().fill(selected ? K.sageDeep : K.surface)
                     .overlay(Capsule().strokeBorder(selected ? .clear : K.border, lineWidth: 0.8)))

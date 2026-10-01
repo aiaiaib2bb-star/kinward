@@ -8,10 +8,14 @@ struct LetterEditor: View {
     @Bindable var letter: Letter
     @Query(sort: \Person.createdAt) private var people: [Person]
 
-    @State private var handwritten = true
+    /// Shared with Settings, so the face a letter is written in is the same face
+    /// it is read in, everywhere it appears.
+    @AppStorage(LetterFace.storageKey) private var faceRaw = LetterFace.hand.rawValue
+    private var face: LetterFace { LetterFace(rawValue: faceRaw) ?? .hand }
+
     @State private var showRecorder = false
-    @State private var showSeal = false
     @State private var openOn: Date = Calendar.current.date(byAdding: .year, value: 1, to: .now) ?? .now
+    @FocusState private var writing: Bool
 
     var body: some View {
         NavigationStack {
@@ -24,6 +28,7 @@ struct LetterEditor: View {
                     }
                     .padding(.horizontal, 18).padding(.top, 10).padding(.bottom, 50)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -35,11 +40,13 @@ struct LetterEditor: View {
                         .font(.serif(16)).foregroundStyle(K.ink)
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button { Haptics.tap(); withAnimation(KMotion.gentle) { handwritten.toggle() } } label: {
-                        Image(systemName: handwritten ? "textformat" : "signature")
-                            .foregroundStyle(K.inkSoft)
-                    }
+                    facePicker
                     Button("Keep") { save(); Haptics.kept(); dismiss() }
+                        .font(KType.body(15).weight(.medium)).foregroundStyle(K.sageDeep)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { writing = false }
                         .font(KType.body(15).weight(.medium)).foregroundStyle(K.sageDeep)
                 }
             }
@@ -53,59 +60,98 @@ struct LetterEditor: View {
         .onAppear { openOn = letter.openOn ?? openOn }
     }
 
+    private var facePicker: some View {
+        Menu {
+            Picker("How it's written", selection: $faceRaw) {
+                ForEach(LetterFace.allCases) { f in
+                    Label(f.title, systemImage: f.icon).tag(f.rawValue)
+                }
+            }
+        } label: {
+            Image(systemName: face.icon).foregroundStyle(K.inkSoft)
+        }
+        .onChange(of: faceRaw) { _, _ in Haptics.tap() }
+    }
+
     // MARK: The sheet
+    // Every field wraps and keeps growing. A line cap on a vertical field doesn't
+    // stop the typing — it scrolls the field inside itself and the first words
+    // disappear off the top, which is worse than running long.
 
     private var paper: some View {
         VStack(alignment: .leading, spacing: 16) {
             TextField("", text: $letter.title,
-                      prompt: Text("A letter to…").foregroundStyle(K.inkFaint.opacity(0.75)))
+                      prompt: Text("A letter to…").foregroundStyle(K.inkFaint.opacity(0.75)),
+                      axis: .vertical)
+                .lineLimit(1...)
                 .font(.serif(25)).foregroundStyle(K.ink)
 
             HairLine().opacity(0.6)
 
             TextField("", text: $letter.salutation,
-                      prompt: Text("My dearest,").foregroundStyle(K.inkFaint.opacity(0.75)))
-                .font(handwritten ? .hand(21) : .serif(18))
-                .foregroundStyle(K.ink)
+                      prompt: Text("My dearest,").foregroundStyle(K.inkFaint.opacity(0.75)),
+                      axis: .vertical)
+                .lineLimit(1...)
+                .font(face.font(21)).foregroundStyle(K.ink)
 
+            // The body is a TextEditor, not a vertical TextField: a letter needs
+            // Return to make a new paragraph, and a vertical TextField submits on
+            // Return instead. Its own scrolling is off so the paper grows and the
+            // page — not a box inside the page — follows the cursor down.
             ZStack(alignment: .topLeading) {
                 if letter.body.isEmpty {
                     Text("Write the things you'd want them to be able to read again in twenty years.")
-                        .font(handwritten ? .hand(19) : .serif(17))
+                        .font(face.font(19))
                         .foregroundStyle(K.inkFaint.opacity(0.7))
-                        .lineSpacing(handwritten ? 9 : 6)
+                        .lineSpacing(face.lineSpacing(9))
                         .padding(.horizontal, 5).padding(.vertical, 8)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $letter.body)
-                    .font(handwritten ? .hand(19) : .serif(17))
+                    .font(face.font(19))
                     .foregroundStyle(K.ink)
-                    .lineSpacing(handwritten ? 9 : 6)
+                    .lineSpacing(face.lineSpacing(9))
                     .scrollContentBackground(.hidden)
-                    .frame(minHeight: 280)
+                    .scrollDisabled(true)
+                    .frame(minHeight: 240)
+                    .focused($writing)
+                    // A TextEditor keeps the height it measured for the old face,
+                    // which leaves a hole under the last line. Rebuild it instead.
+                    .id(faceRaw)
             }
 
             PhotoStrip(refs: $letter.photoRefs, height: 104)
 
             TextField("", text: $letter.signature,
-                      prompt: Text("With all my love,").foregroundStyle(K.inkFaint.opacity(0.75)))
-                .font(handwritten ? .hand(21) : .serif(18))
-                .foregroundStyle(K.ink)
+                      prompt: Text("With all my love,").foregroundStyle(K.inkFaint.opacity(0.75)),
+                      axis: .vertical)
+                .lineLimit(1...)
+                .font(face.font(21)).foregroundStyle(K.ink)
                 .padding(.top, 6)
         }
+        .textFieldStyle(.plain)
         .padding(24)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: K.rLarge, style: .continuous).fill(K.paper)
-                RoundedRectangle(cornerRadius: K.rLarge, style: .continuous)
-                    .fill(RadialGradient(colors: [K.goldSoft.opacity(0.16), .clear],
-                                         center: .topTrailing, startRadius: 4, endRadius: 320))
+                // The warm light in the corner is Paper's; on Clear it would tint
+                // the page with the accent.
+                if !K.isClear {
+                    RoundedRectangle(cornerRadius: K.rLarge, style: .continuous)
+                        .fill(RadialGradient(colors: [K.goldSoft.opacity(0.16), .clear],
+                                             center: .topTrailing, startRadius: 4, endRadius: 320))
+                }
                 GrainOverlay(opacity: 0.028)
                     .clipShape(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous))
+                if !K.isClear {
+                    AgeMarks(age: K.age, salt: 0x1E77E7)
+                        .clipShape(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous))
+                }
             }
-            .shadow(color: K.ink.opacity(0.10), radius: 22, y: 10)
+            .shadow(color: K.shadowInk.opacity(0.10), radius: 22, y: 10)
         )
-        .overlay(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous).strokeBorder(K.border, lineWidth: 0.8))
+        .overlay(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous)
+            .strokeBorder(K.border.opacity(K.isClear ? 0 : 1), lineWidth: 0.8))
     }
 
     // MARK: Below the fold
@@ -138,7 +184,7 @@ struct LetterEditor: View {
                 HStack(spacing: 12) {
                     Button { Haptics.tap(); VoicePlayer.shared.toggle(ref: ref) } label: {
                         Image(systemName: VoicePlayer.shared.playingRef == ref && VoicePlayer.shared.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 12)).foregroundStyle(K.surface)
+                            .font(.system(size: 12)).foregroundStyle(K.onAccent)
                             .frame(width: 34, height: 34).background(Circle().fill(K.sageDeep))
                     }
                     .buttonStyle(.plain)
@@ -172,7 +218,7 @@ struct LetterEditor: View {
                             Image(systemName: s.icon).font(.system(size: 10, weight: .light))
                             Text(s.title).font(KType.body(13.5))
                         }
-                        .foregroundStyle(on ? K.surface : K.ink)
+                        .foregroundStyle(on ? K.onAccent : K.ink)
                         .padding(.horizontal, 13).padding(.vertical, 9)
                         .background(Capsule().fill(on ? K.sageDeep : K.surface)
                             .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))

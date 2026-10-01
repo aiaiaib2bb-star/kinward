@@ -41,7 +41,7 @@ struct TreePersonSheet: View {
                                             .strokeBorder(ring, lineWidth: 2)
                                             .padding(-4))
                                     Image(systemName: "camera.fill")
-                                        .font(.system(size: 11)).foregroundStyle(K.surface)
+                                        .font(.system(size: 11)).foregroundStyle(K.onAccent)
                                         .frame(width: 30, height: 30)
                                         .background(Circle().fill(K.sageDeep))
                                         .overlay(Circle().strokeBorder(K.bg, lineWidth: 2))
@@ -133,7 +133,7 @@ struct TreePersonSheet: View {
                         let on = person.generation == g
                         Button { Haptics.tap(); person.generation = g } label: {
                             Text(g.title).font(KType.body(13.5))
-                                .foregroundStyle(on ? K.surface : K.inkSoft)
+                                .foregroundStyle(on ? K.onAccent : K.inkSoft)
                                 .padding(.horizontal, 14).padding(.vertical, 9)
                                 .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                     .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -166,7 +166,7 @@ struct TreePersonSheet: View {
                                 PersonAvatar(person: p, size: 22)
                                 Text(p.firstName.isEmpty ? "Unnamed" : p.firstName).font(KType.body(14))
                             }
-                            .foregroundStyle(on ? K.surface : K.ink)
+                            .foregroundStyle(on ? K.onAccent : K.ink)
                             .padding(.horizontal, 10).padding(.vertical, 7)
                             .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                 .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -198,7 +198,7 @@ struct TreePersonSheet: View {
                             PersonAvatar(person: p, size: 22)
                             Text(p.firstName.isEmpty ? "Unnamed" : p.firstName).font(KType.body(14))
                         }
-                        .foregroundStyle(on ? K.surface : K.ink)
+                        .foregroundStyle(on ? K.onAccent : K.ink)
                         .padding(.horizontal, 10).padding(.vertical, 7)
                         .background(Capsule().fill(on ? K.sageDeep : K.surface)
                             .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -282,7 +282,7 @@ struct TreePersonSheet: View {
                                 withAnimation(KMotion.gentle) { pendingSensitive = nil }
                                 save()
                             } label: {
-                                Text("Yes, share it").font(KType.body(14)).foregroundStyle(K.surface)
+                                Text("Yes, share it").font(KType.body(14)).foregroundStyle(K.onAccent)
                                     .frame(maxWidth: .infinity).padding(.vertical, 11)
                                     .background(Capsule().fill(K.sageDeep))
                             }
@@ -474,7 +474,7 @@ struct TreeQuickAdd: View {
                                         let on = chosen == g
                                         Button { Haptics.tap(); chosen = g } label: {
                                             Text(g.title).font(KType.body(13.5))
-                                                .foregroundStyle(on ? K.surface : K.inkSoft)
+                                                .foregroundStyle(on ? K.onAccent : K.inkSoft)
                                                 .padding(.horizontal, 14).padding(.vertical, 9)
                                                 .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                                     .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -500,7 +500,7 @@ struct TreeQuickAdd: View {
                                             PersonAvatar(person: p, size: 22)
                                             Text(p.firstName.isEmpty ? "Unnamed" : p.firstName).font(KType.body(14))
                                         }
-                                        .foregroundStyle(on ? K.surface : K.ink)
+                                        .foregroundStyle(on ? K.onAccent : K.ink)
                                         .padding(.horizontal, 10).padding(.vertical, 7)
                                         .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                             .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))

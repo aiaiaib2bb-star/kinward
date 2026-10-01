@@ -5,6 +5,7 @@ import PhotosUI
 struct PeopleView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \Person.createdAt) private var people: [Person]
     @State private var editing: Person?
     @State private var detail: Person?
@@ -61,7 +62,7 @@ struct PeopleView: View {
 
                 Marginalia(text: KinwardSection.people.marginalia).padding(.top, 8)
             }
-            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
+            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }
@@ -153,7 +154,7 @@ struct PersonEditor: View {
                                     AvatarBadge(initials: initials, photoRef: photoRef,
                                                 seed: seed, size: 104)
                                     Image(systemName: "camera.fill")
-                                        .font(.system(size: 11)).foregroundStyle(K.surface)
+                                        .font(.system(size: 11)).foregroundStyle(K.onAccent)
                                         .frame(width: 30, height: 30)
                                         .background(Circle().fill(K.sageDeep))
                                         .overlay(Circle().strokeBorder(K.bg, lineWidth: 2))
@@ -172,7 +173,7 @@ struct PersonEditor: View {
                                 let on = person.relationship == r
                                 Button { Haptics.tap(); person.relationship = r } label: {
                                     Text(r).font(KType.body(14))
-                                        .foregroundStyle(on ? K.surface : K.ink)
+                                        .foregroundStyle(on ? K.onAccent : K.ink)
                                         .padding(.horizontal, 14).padding(.vertical, 9)
                                         .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                             .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))

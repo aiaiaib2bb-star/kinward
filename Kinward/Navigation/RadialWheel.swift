@@ -88,6 +88,7 @@ struct RadialWheel: View {
                 }
 
                 closedDial
+                    .tutorialAnchor(.navigation)
                     .position(closedCentre)
                     .opacity(open ? 0 : 1)
                     .scaleEffect(open ? 0.84 : 1)
@@ -125,7 +126,7 @@ struct RadialWheel: View {
         let label = CurvedText(text: router.section.title.uppercased(),
                                radius: closedRadius, centerAngle: anchor,
                                size: 7.5, weight: .semibold,
-                               color: K.surface, tracking: 1.6)
+                               color: K.onAccent, tracking: 1.6)
         let band = min(max(label.sweep + 24, 56), 150)
         let gap = 18.0
         let free = 360 - band - gap * 2
@@ -135,7 +136,7 @@ struct RadialWheel: View {
             Circle()
                 .fill(K.surface.opacity(0.94))
                 .frame(width: closedSize, height: closedSize)
-                .shadow(color: K.ink.opacity(0.13), radius: 15, y: 6)
+                .shadow(color: K.shadowInk.opacity(0.13), radius: 15, y: 6)
                 .overlay(Circle().strokeBorder(K.border.opacity(0.85), lineWidth: 0.8)
                     .frame(width: closedSize, height: closedSize))
 
@@ -165,7 +166,7 @@ struct RadialWheel: View {
         return shape
             .fill(K.surface.opacity(0.99))
             .overlay(shape.stroke(K.border, lineWidth: 0.9))
-            .shadow(color: K.ink.opacity(0.15), radius: 28, x: -6, y: -6)
+            .shadow(color: K.shadowInk.opacity(0.15), radius: 28, x: -6, y: -6)
             .scaleEffect(router.wheelOpen ? 1 : 0.3,
                          anchor: UnitPoint(x: c.x / max(size.width, 1),
                                            y: c.y / max(size.height, 1)))
@@ -222,11 +223,11 @@ struct RadialWheel: View {
             Circle()
                 .fill(K.sageDeep)
                 .frame(width: 44, height: 44)
-                .shadow(color: K.ink.opacity(selected ? 0.24 : 0), radius: 11, y: 4)
+                .shadow(color: K.shadowInk.opacity(selected ? 0.24 : 0), radius: 11, y: 4)
                 .opacity(selected ? 1 : 0)
             Image(systemName: s.icon)
                 .font(.system(size: selected ? 18 : 17, weight: .light))
-                .foregroundStyle(selected ? K.surface : K.inkSoft.opacity(0.92))
+                .foregroundStyle(selected ? K.onAccent : K.inkSoft.opacity(0.92))
         }
         .frame(width: 44, height: 44)
         .scaleEffect(selected && detentKick ? 1.07 : 1)
@@ -249,10 +250,10 @@ struct RadialWheel: View {
                     .fill(hot ? K.gold : K.surface)
                     .frame(width: 44, height: 44)
                     .overlay(Circle().strokeBorder(K.goldSoft, lineWidth: 1))
-                    .shadow(color: K.ink.opacity(hot ? 0.2 : 0.08), radius: 9, y: 3)
+                    .shadow(color: K.shadowInk.opacity(hot ? 0.2 : 0.08), radius: 9, y: 3)
                 Image(systemName: "plus")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(hot ? K.surface : K.gold)
+                    .foregroundStyle(hot ? K.onAccent : K.gold)
             }
             .animation(KMotion.wheel, value: hot)
             .offset(x: cos(a) * iconRadius, y: sin(a) * iconRadius)
@@ -269,21 +270,21 @@ struct RadialWheel: View {
         let d = open ? hubRadius * 2 : CGFloat(54)
         ZStack {
             Circle()
-                .fill(LinearGradient(colors: [K.sageDeep, Color(hex: 0x2C322A)],
+                .fill(LinearGradient(colors: [K.sageDeep, K.isClear ? K.sageDeep.opacity(0.78) : Color(hex: 0x2C322A)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: d, height: d)
-                .shadow(color: K.ink.opacity(0.3), radius: 14, y: 6)
+                .shadow(color: K.shadowInk.opacity(0.3), radius: 14, y: 6)
                 .scaleEffect(open ? 1 : (breathe ? 1.015 : 0.985))
             if open {
                 VStack(spacing: 2) {
                     Image(systemName: "house").font(.system(size: 16, weight: .light))
                     Text("HOME").font(.sans(7, .semibold)).tracking(1.6)
                 }
-                .foregroundStyle(K.surface.opacity(0.95))
+                .foregroundStyle(K.onAccent.opacity(0.95))
             } else {
                 Image(systemName: router.atHome ? "house" : router.section.icon)
                     .font(.system(size: 17, weight: .light))
-                    .foregroundStyle(K.surface.opacity(0.95))
+                    .foregroundStyle(K.onAccent.opacity(0.95))
                     .contentTransition(.symbolEffect(.replace))
             }
         }
@@ -320,7 +321,7 @@ struct RadialWheel: View {
                 .fill(K.surface)
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(K.border, lineWidth: 0.8))
-                .shadow(color: K.ink.opacity(0.1), radius: 16, y: 6)
+                .shadow(color: K.shadowInk.opacity(0.1), radius: 16, y: 6)
         )
         .fixedSize()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)

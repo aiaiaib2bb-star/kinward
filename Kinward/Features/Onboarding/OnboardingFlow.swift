@@ -29,6 +29,8 @@ struct OnboardingFlow: View {
     @State private var wipeScale: CGFloat = 1
     @State private var wipeOpacity: Double = 1
     @State private var wiping = false
+    /// Drives the slow breath on the closing button.
+    @State private var entering = false
 
     private let totalSteps = 8
 
@@ -42,7 +44,8 @@ struct OnboardingFlow: View {
                               cta: "Get Started",
                               marginalia: "Some things are\ntoo important\nto be forgotten.",
                               plate: .push,
-                              button: .beckon)
+                              button: .beckon,
+                              lead: 0.95)
             case 1: cinematic(image: "hero_album_letters",
                               eyebrow: "Why now",
                               headline: "One day there will be\nthings they wish\nthey could ask you.",
@@ -184,11 +187,18 @@ struct OnboardingFlow: View {
 
     /// Words at the top where the sky is, the handwritten note bottom-left, and the
     /// opening disc tucked into the corner of the glass — the design sheet's layout.
+    /// `lead` is how long the page waits before its words start to arrive. The first
+    /// page needs the longest: it appears while the app itself is still fading in at
+    /// launch, and anything that starts sooner plays out under that fade and is
+    /// half-missed. The second arrives behind the closing wipe and needs less.
     private func cinematic(image: String, eyebrow: String, headline: String,
                            body: String, cta: String, marginalia: String,
                            plate: CinematicPlate.Motion = .push,
-                           button: CornerCTA.Motion = .beckon) -> some View {
-        ZStack {
+                           button: CornerCTA.Motion = .beckon,
+                           lead: Double = 0.45) -> some View {
+        // One beat between lines, long enough that each is read as it lands.
+        let beat = 0.38
+        return ZStack {
             CinematicPlate(image: image, motion: plate)
                 .overlay(
                     // Dark enough at the top to carry a headline, dark again at the
@@ -204,11 +214,11 @@ struct OnboardingFlow: View {
                 )
 
             VStack(alignment: .leading, spacing: 0) {
-                Reveal(delay: 0.05) {
+                Reveal(delay: lead) {
                     Text(eyebrow).eyebrowStyle(.white.opacity(0.75))
                 }
                 .padding(.top, 70)
-                Reveal(delay: 0.13) {
+                Reveal(delay: lead + beat) {
                     Text(headline)
                         .font(.serif(38))
                         .foregroundStyle(.white)
@@ -217,7 +227,7 @@ struct OnboardingFlow: View {
                         .shadow(color: .black.opacity(0.45), radius: 18, y: 4)
                         .padding(.top, 20)
                 }
-                Reveal(delay: 0.21) {
+                Reveal(delay: lead + beat * 2) {
                     Text(body)
                         .font(KType.body(16))
                         .foregroundStyle(.white.opacity(0.86))
@@ -227,7 +237,7 @@ struct OnboardingFlow: View {
                         .padding(.trailing, 12)
                 }
                 Spacer(minLength: 0)
-                Reveal(delay: 0.34) {
+                Reveal(delay: lead + beat * 3.2) {
                     Marginalia(text: marginalia, size: 17, color: .white.opacity(0.82))
                 }
                 // Clear of the disc in the corner.
@@ -237,12 +247,16 @@ struct OnboardingFlow: View {
             .padding(.horizontal, 28)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            CornerCTA(title: cta, motion: button, action: advanceWithWipe)
+            // The disc comes last, once there is something to agree to.
+            CornerCTA(title: cta, motion: button, arriveAfter: lead + beat * 3.6,
+                      action: advanceWithWipe)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .ignoresSafeArea()
         }
         .preferredColorScheme(.dark)
-        .transition(.opacity.combined(with: .scale(scale: 1.04)))
+        // Opacity only. A scale here zoomed the page in at the same moment the
+        // photograph began its own push, and the two motions fought.
+        .transition(.opacity)
     }
 
     private func chooser(eyebrow: String, headline: String, sub: String,
@@ -434,38 +448,123 @@ struct OnboardingFlow: View {
         .transition(.opacity)
     }
 
+    /// A quiet ledger of what the last few screens actually produced. The closing
+    /// page used to be a headline floating over an empty sky; the point of it is
+    /// that you have already started, so it should say what you started with.
+    private var ledgerLines: [String] {
+        var out: [String] = []
+
+        let names = (newPeople.map(\.0) + existingPeople.map(\.name))
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        var seen = Set<String>()
+        let people = names.filter { seen.insert($0).inserted }
+        if !people.isEmpty {
+            out.append(people.count <= 2
+                       ? "For " + people.joined(separator: " and ")
+                       : "For \(people.prefix(2).joined(separator: ", ")) and \(people.count - 2) more")
+        }
+
+        let kept = know.count + remember.count
+        if kept > 0 { out.append("\(kept) thing\(kept == 1 ? "" : "s") you want remembered") }
+        if !practical.isEmpty {
+            out.append("\(practical.count) practical thing\(practical.count == 1 ? "" : "s"), for later")
+        }
+        if !firstAnswer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || savedRecording != nil {
+            out.append("The first one, already written down")
+        }
+        return out
+    }
+
     private var closingStep: some View {
         ZStack {
             NightSky()
+
             VStack(alignment: .leading, spacing: 0) {
-                Spacer()
-                Text(mode == .revisit
-                     ? "That's the whole idea."
-                     : "You don't have to\nremember everything\ntoday.")
-                    .font(.serif(34)).foregroundStyle(.white).lineSpacing(3)
-                    .shadow(color: .black.opacity(0.5), radius: 18, y: 4)
-                Text(mode == .revisit
-                     ? "One question a week, kept in your own words. Little by little, your story becomes something your family can carry forward."
-                     : "Every week, Kinward will ask you one meaningful question. Little by little, your story becomes something your family can carry forward.")
-                    .font(KType.body(16)).foregroundStyle(.white.opacity(0.8)).lineSpacing(5)
-                    .padding(.top, 18).padding(.trailing, 14)
-                Button(action: finish) {
-                    HStack(spacing: 10) {
-                        Text(mode == .revisit ? "Back to Kinward" : "Enter Kinward").font(KType.body(16))
-                        Image(systemName: "arrow.right").font(.system(size: 13, weight: .medium))
-                    }
-                    .foregroundStyle(K.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 17)
-                    .background(Capsule().fill(Color.white.opacity(0.96)))
+                Reveal(delay: 0.10) {
+                    Text("Kinward").eyebrowStyle(.white.opacity(0.55))
                 }
-                .buttonStyle(.plain)
+                .padding(.top, 74)
+
+                Spacer(minLength: 24)
+
+                if !ledgerLines.isEmpty {
+                    Reveal(delay: 0.24) {
+                        Text(mode == .revisit ? "What you keep" : "You've already started")
+                            .eyebrowStyle(Color(hex: 0xE8C48A).opacity(0.9))
+                    }
+                    VStack(alignment: .leading, spacing: 11) {
+                        ForEach(Array(ledgerLines.enumerated()), id: \.element) { i, line in
+                            Reveal(delay: 0.34 + Double(i) * 0.11) {
+                                HStack(alignment: .firstTextBaseline, spacing: 11) {
+                                    Circle()
+                                        .fill(Color(hex: 0xE8C48A).opacity(0.85))
+                                        .frame(width: 4, height: 4)
+                                    Text(line)
+                                        .font(KType.body(15.5))
+                                        .foregroundStyle(.white.opacity(0.92))
+                                        .multilineTextAlignment(.leading)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.top, 15)
+
+                    Reveal(delay: 0.34 + Double(ledgerLines.count) * 0.11) {
+                        Rectangle().fill(.white.opacity(0.16)).frame(height: 0.7)
+                    }
+                    .padding(.top, 26)
+                }
+
+                Reveal(delay: 0.46 + Double(ledgerLines.count) * 0.11) {
+                    Text(mode == .revisit
+                         ? "That's the whole idea."
+                         : "You don't have to\nremember everything\ntoday.")
+                        .font(.serif(34)).foregroundStyle(.white).lineSpacing(3)
+                        .shadow(color: .black.opacity(0.5), radius: 18, y: 4)
+                }
+                .padding(.top, ledgerLines.isEmpty ? 0 : 26)
+
+                Reveal(delay: 0.56 + Double(ledgerLines.count) * 0.11) {
+                    Text(mode == .revisit
+                         ? "One question a week, kept in your own words. Little by little, your story becomes something your family can carry forward."
+                         : "Every week, Kinward will ask you one meaningful question. Little by little, your story becomes something your family can carry forward.")
+                        .font(KType.body(16)).foregroundStyle(.white.opacity(0.8)).lineSpacing(5)
+                        .padding(.top, 18).padding(.trailing, 14)
+                }
+
+                Reveal(delay: 0.68 + Double(ledgerLines.count) * 0.11) {
+                    Button(action: finish) {
+                        HStack(spacing: 10) {
+                            Text(mode == .revisit ? "Back to Kinward" : "Enter Kinward").font(KType.body(16))
+                            Image(systemName: "arrow.right").font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundStyle(K.ink)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 17)
+                        .background(
+                            Capsule().fill(Color.white.opacity(0.96))
+                                .shadow(color: .black.opacity(entering ? 0.34 : 0.20),
+                                        radius: entering ? 26 : 16, y: entering ? 10 : 6)
+                        )
+                        // The same slow breath the opening disc has, so the first
+                        // screen and the last one move on the same clock.
+                        .scaleEffect(entering ? 1.015 : 1)
+                        .animation(.easeInOut(duration: 7.2).repeatForever(autoreverses: true),
+                                   value: entering)
+                    }
+                    .buttonStyle(.plain)
+                }
                 .padding(.top, 34).padding(.bottom, 50)
             }
             .padding(.horizontal, 28)
         }
         .preferredColorScheme(.dark)
         .transition(.opacity)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { entering = true }
+        }
     }
 
     // MARK: Commit
@@ -514,10 +613,15 @@ struct CornerCTA: View {
 
     let title: String
     var motion: Motion = .beckon
+    /// Seconds after the page appears before the disc glides up out of its corner.
+    var arriveAfter: Double = 0.55
     var action: () -> Void
 
     @State private var pressed = false
     @State private var arrived = false
+    /// A slow swell, so the disc reads as something alive waiting for you rather
+    /// than a shape parked in the corner.
+    @State private var breathing = false
 
     /// Shared with the onboarding wipe, which has to start exactly where this sits.
     static let diameter: CGFloat = 168
@@ -538,8 +642,13 @@ struct CornerCTA: View {
             Circle()
                 .fill(Color.white.opacity(0.96))
                 .frame(width: d, height: d)
-                .shadow(color: .black.opacity(pressed ? 0.34 : 0.26),
-                        radius: pressed ? 16 : 26, y: pressed ? 6 : 10)
+                .shadow(color: .black.opacity(pressed ? 0.34 : (breathing ? 0.30 : 0.22)),
+                        radius: pressed ? 16 : (breathing ? 30 : 22),
+                        y: pressed ? 6 : (breathing ? 12 : 9))
+                // The shadow breathes with the disc — the light shifting is what
+                // sells it as moving, more than the size ever does.
+                .animation(.easeInOut(duration: 7.2).repeatForever(autoreverses: true),
+                           value: breathing)
 
             VStack(spacing: 9) {
                 arrow
@@ -555,8 +664,13 @@ struct CornerCTA: View {
         .animation(.spring(response: 0.26, dampingFraction: 0.62), value: pressed)
         .offset(x: bleed.width, y: bleed.height)
         // Rolls up out of the corner it lives in, once the words have settled.
-        .scaleEffect(arrived ? 1 : 0.72, anchor: .bottomTrailing)
+        .scaleEffect(arrived ? 1 : 0.88, anchor: .bottomTrailing)
         .opacity(arrived ? 1 : 0)
+        // Anchored into the corner it is cropped by, so the swell never pulls the
+        // disc off the screen edge and opens a gap.
+        .scaleEffect(breathing ? 1.024 : 1, anchor: .bottomTrailing)
+        .animation(.easeInOut(duration: 7.2).repeatForever(autoreverses: true),
+                   value: breathing)
         .contentShape(Circle())
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -576,8 +690,10 @@ struct CornerCTA: View {
                 }
         )
         .onAppear {
-            withAnimation(.spring(response: 0.78, dampingFraction: 0.78).delay(0.55)) {
-                arrived = true
+            withAnimation(KMotion.arrive.delay(arriveAfter)) { arrived = true }
+            // Starts once it has finished arriving, so the two never fight.
+            DispatchQueue.main.asyncAfter(deadline: .now() + arriveAfter + 1.6) {
+                breathing = true
             }
         }
         .accessibilityElement()
@@ -599,10 +715,11 @@ struct CornerCTA: View {
                 view.offset(x: x)
             } keyframes: { _ in
                 KeyframeTrack {
-                    LinearKeyframe(0, duration: 2.4)
-                    SpringKeyframe(6, duration: 0.5, spring: .snappy)
-                    // Settles without recoiling: a lean forward, not a flinch.
-                    SpringKeyframe(0, duration: 0.9, spring: .smooth)
+                    LinearKeyframe(0, duration: 3.6)
+                    // Eased both ways. The old snap forward on a snappy spring was the
+                    // one sharp movement on an otherwise slow page.
+                    CubicKeyframe(5, duration: 1.1)
+                    CubicKeyframe(0, duration: 1.5)
                 }
             }
         case .echo:
@@ -621,8 +738,8 @@ struct CornerCTA: View {
                     .opacity(t <= 0 ? 0 : (1 - t) * 0.42)
             } keyframes: { _ in
                 KeyframeTrack {
-                    LinearKeyframe(0, duration: 1.5)
-                    CubicKeyframe(1, duration: 3.0)
+                    LinearKeyframe(0, duration: 2.2)
+                    CubicKeyframe(1, duration: 4.4)
                 }
             }
             .allowsHitTesting(false)
@@ -639,21 +756,23 @@ private struct Reveal<Content: View>: View {
     var body: some View {
         content
             .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 12)
-            // Scaled from the leading edge, so the left margin never moves and only
-            // the weight of the line changes.
-            .scaleEffect(shown ? 1 : 0.96, anchor: .leading)
+            .offset(y: shown ? 0 : 18)
+            // Coming into focus reads as arriving; a scale on a spring read as a
+            // wobble, because an under-damped spring overshoots and comes back.
+            .blur(radius: shown ? 0 : 7)
             .onAppear {
-                withAnimation(.spring(response: 0.40, dampingFraction: 0.68).delay(delay)) {
-                    shown = true
-                }
+                withAnimation(KMotion.arrive.delay(delay)) { shown = true }
             }
     }
 }
 
-/// The hero photograph, never quite still. The first screen pushes slowly in, the
-/// way you lean toward a memory; the second drifts across, the way an eye moves over
-/// a table of photographs.
+/// The hero photograph, never quite still. The first screen pushes slowly in and
+/// back out, the way you lean toward a memory and settle again; the second drifts
+/// across, the way an eye moves over a table of photographs.
+///
+/// Both breathe on the same terms: a long ease-in-out that reverses and never ends.
+/// The push used to be a one-shot ease-out, which spent most of its travel in the
+/// first second and then sat frozen for good — it read as a lurch, not a breath.
 private struct CinematicPlate: View {
     enum Motion { case push, pan }
 
@@ -661,17 +780,19 @@ private struct CinematicPlate: View {
     var motion: Motion = .push
     @State private var on = false
 
+    /// Long enough that no single moment of it is legible as movement.
+    private var duration: Double { motion == .push ? 30 : 34 }
+
     var body: some View {
         Image(image)
             .resizable()
             .scaledToFill()
             .ignoresSafeArea()
-            // Panning needs headroom so an edge never shows.
-            .scaleEffect(motion == .push ? (on ? 1.07 : 1) : 1.1)
+            // Both start scaled up: the push needs room to come back out of, and the
+            // pan needs headroom so an edge never shows.
+            .scaleEffect(motion == .push ? (on ? 1.10 : 1.02) : 1.1)
             .offset(x: motion == .pan ? (on ? -20 : 20) : 0)
-            .animation(motion == .push
-                       ? .easeOut(duration: 20)
-                       : .easeInOut(duration: 26).repeatForever(autoreverses: true),
+            .animation(.easeInOut(duration: duration).repeatForever(autoreverses: true),
                        value: on)
             .onAppear { on = true }
     }
@@ -700,7 +821,7 @@ struct FlowChips: View {
                         if on { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)) }
                         Text(o).font(KType.body(14.5))
                     }
-                    .foregroundStyle(on ? K.surface : K.ink)
+                    .foregroundStyle(on ? K.onAccent : K.ink)
                     .padding(.horizontal, 16).padding(.vertical, 11)
                     .background(Capsule().fill(on ? K.sageDeep : K.surface)
                         .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -766,30 +887,61 @@ struct FlowLayout: Layout {
 
 /// The closing screen's sky. Drawn, not photographed — it never needs to load.
 struct NightSky: View {
-    @State private var shimmer = false
+    /// Fixed positions, individual phases. It has to be the same sky every time it
+    /// is opened, but no two stars should breathe together — that is the difference
+    /// between a night sky and a wallpaper.
+    private struct Star {
+        let x, y, r, base, phase, speed: Double
+    }
+
+    private static let stars: [Star] = {
+        var seed: UInt64 = 0xA11CE
+        func rnd() -> Double {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double((seed >> 33) & 0xFFFF) / 65535.0
+        }
+        return (0..<260).map { _ in
+            Star(x: rnd(), y: rnd() * 0.78, r: rnd() * 1.5 + 0.35,
+                 base: 0.25 + rnd() * 0.75,
+                 phase: rnd() * .pi * 2,
+                 // Slow, and all slightly different, so the field never pulses as one.
+                 speed: 0.16 + rnd() * 0.34)
+        }
+    }()
+
+    @State private var dawn = false
+
     var body: some View {
         ZStack {
             LinearGradient(colors: [Color(hex: 0x0B1014), Color(hex: 0x18232B), Color(hex: 0x3A3630)],
                            startPoint: .top, endPoint: .bottom)
-            Canvas { ctx, size in
-                var seed: UInt64 = 0xA11CE
-                func rnd() -> Double {
-                    seed = seed &* 6364136223846793005 &+ 1442695040888963407
-                    return Double((seed >> 33) & 0xFFFF) / 65535.0
-                }
-                for _ in 0..<260 {
-                    let x = rnd() * size.width
-                    let y = rnd() * size.height * 0.78
-                    let r = rnd() * 1.5 + 0.35
-                    let a = (1 - y / size.height) * (0.25 + rnd() * 0.75)
-                    ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
-                             with: .color(.white.opacity(a)))
+
+            // Thirty a second is plenty for something this faint, and it leaves the
+            // phone alone on a screen people sit with.
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { tl in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                Canvas { ctx, size in
+                    for star in Self.stars {
+                        let y = star.y * size.height
+                        let twinkle = 0.70 + 0.30 * sin(t * star.speed + star.phase)
+                        let a = (1 - y / size.height) * star.base * twinkle
+                        ctx.fill(Path(ellipseIn: CGRect(x: star.x * size.width, y: y,
+                                                        width: star.r, height: star.r)),
+                                 with: .color(.white.opacity(a)))
+                    }
                 }
             }
-            RadialGradient(colors: [Color(hex: 0xE8C48A).opacity(0.30), .clear],
-                           center: .init(x: 0.7, y: 0.88), startRadius: 10, endRadius: 380)
+
+            // The light at the horizon swells and fades, the way it does in the hour
+            // before dawn — the reason this screen is the last one.
+            RadialGradient(colors: [Color(hex: 0xE8C48A).opacity(dawn ? 0.38 : 0.22), .clear],
+                           center: .init(x: dawn ? 0.72 : 0.67, y: 0.88),
+                           startRadius: 10, endRadius: dawn ? 430 : 350)
+                .animation(.easeInOut(duration: 11).repeatForever(autoreverses: true), value: dawn)
+
             LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .center, endPoint: .bottom)
         }
         .ignoresSafeArea()
+        .onAppear { dawn = true }
     }
 }

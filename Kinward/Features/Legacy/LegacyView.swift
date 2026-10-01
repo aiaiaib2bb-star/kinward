@@ -1,9 +1,11 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct LegacyView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \Person.createdAt) private var people: [Person]
     @Query(sort: \FamilyStory.createdAt, order: .reverse) private var stories: [FamilyStory]
     @Query private var memories: [MemoryEntry]
@@ -17,6 +19,12 @@ struct LegacyView: View {
     @State private var showTree = false
     @State private var showBook = false
     @State private var showTrusted = false
+    @State private var showPassOn = false
+    @State private var showPassedDown = false
+    @State private var importing = false
+    @State private var arrived: Heirloom.Outcome?
+    @State private var importFailure: String?
+    @State private var paywall: PaywallRequest?
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -26,12 +34,13 @@ struct LegacyView: View {
                               onBack: { router.goHome() })
 
                 capsulesBlock
+                continuingBlock
                 toolsBlock
                 familyBlock
 
                 Marginalia(text: KinwardSection.legacy.marginalia).padding(.top, 6)
             }
-            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
+            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }
@@ -41,6 +50,113 @@ struct LegacyView: View {
         .sheet(isPresented: $showTree) { FamilyTreeView() }
         .sheet(isPresented: $showBook) { LegacyBookView() }
         .sheet(isPresented: $showTrusted) { TrustedPeopleView() }
+        .sheet(isPresented: $showPassOn) { PassItOnSheet(person: people.first) }
+        .sheet(isPresented: $showPassedDown) { PassedDownView() }
+        .sheet(item: $arrived) { HeirloomArrivedSheet(outcome: $0) }
+        .paywall($paywall)
+        .fileImporter(isPresented: $importing,
+                      allowedContentTypes: [Heirloom.contentType, .data]) { result in
+            receive(result)
+        }
+        .alert("It couldn't be opened", isPresented: Binding(
+            get: { importFailure != nil }, set: { if !$0 { importFailure = nil } }
+        )) {
+            Button("All right", role: .cancel) { importFailure = nil }
+        } message: {
+            Text(importFailure ?? "")
+        }
+    }
+
+    // MARK: Keeping it moving
+    //
+    // The capsule above is a handover. This is the part that makes it a chain: what
+    // somebody was given becomes theirs to give, and their name goes on it.
+
+    private var continuingBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Keep it moving").eyebrowStyle(K.gold)
+
+            Button { Haptics.tap(); open(.passItOn) { showPassOn = true } } label: {
+                HStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Pass it on").font(.serif(20)).foregroundStyle(K.ink)
+                        Text("One file another Kinward opens. What you send becomes theirs to keep — and to send on again.")
+                            .font(KType.caption(13)).foregroundStyle(K.inkSoft)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(.leading, 20).padding(.vertical, 20)
+                    Spacer(minLength: 10)
+                    Image("hero_father_child").resizable().scaledToFill()
+                        .frame(width: 96, height: 92)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .padding(10)
+                }
+                .cardSurface(fill: K.paper)
+                .overlay(alignment: .topTrailing) {
+                    if !Store.shared.isPlus { PlusBadge().padding(16) }
+                }
+            }
+            .buttonStyle(.plain)
+
+            Button { Haptics.tap(); importing = true } label: {
+                row(icon: "tray.and.arrow.down",
+                    title: "Open something passed to you",
+                    detail: "A .kinward file someone in your family sent.")
+            }
+            .buttonStyle(.plain)
+
+            if inheritedCount > 0 {
+                Button { Haptics.tap(); showPassedDown = true } label: {
+                    row(icon: "arrow.down.forward.and.arrow.up.backward.circle",
+                        title: "What reached you",
+                        detail: "\(inheritedCount) \(inheritedCount == 1 ? "piece" : "pieces") from somebody else's hands.")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func row(icon: String, title: String, detail: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .light)).foregroundStyle(K.sage)
+                .frame(width: 44, height: 44)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(K.bgDeep.opacity(0.7)))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(KType.body(16).weight(.medium)).foregroundStyle(K.ink)
+                Text(detail).font(KType.caption(12.5)).foregroundStyle(K.inkSoft)
+                    .multilineTextAlignment(.leading)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.system(size: 12, weight: .medium))
+                .foregroundStyle(K.inkFaint.opacity(0.6))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 13)
+        .cardSurface(radius: 18)
+    }
+
+    private var inheritedCount: Int {
+        memories.filter { !$0.passedDown.isEmpty }.count
+            + letters.filter { !$0.passedDown.isEmpty }.count
+            + lessons.filter { !$0.passedDown.isEmpty }.count
+            + stories.filter { !$0.passedDown.isEmpty }.count
+            + recordings.filter { !$0.passedDown.isEmpty }.count
+    }
+
+    private func receive(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            importFailure = error.localizedDescription
+        case .success(let url):
+            do {
+                let parcel = try Heirloom.read(url)
+                let outcome = Heirloom.open(parcel, into: ctx)
+                Haptics.kept()
+                arrived = outcome
+            } catch {
+                importFailure = error.localizedDescription
+            }
+        }
     }
 
     // MARK: Capsules
@@ -115,12 +231,17 @@ struct LegacyView: View {
             .compactMap { $0 }.joined(separator: " · ")
     }
 
+    /// Opens a Plus feature, or the paywall pointing at it.
+    private func open(_ feature: PlusFeature, _ go: () -> Void) {
+        if Store.shared.has(feature) { go() } else { paywall = PaywallRequest(feature: feature) }
+    }
+
     // MARK: Tools
 
     private var toolsBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Your whole archive").eyebrowStyle(K.inkFaint)
-            Button { Haptics.tap(); showBook = true } label: {
+            Button { Haptics.tap(); open(.legacyBook) { showBook = true } } label: {
                 HStack(spacing: 0) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("The book of your life")
@@ -137,6 +258,9 @@ struct LegacyView: View {
                         .padding(10)
                 }
                 .cardSurface(fill: K.paper)
+                .overlay(alignment: .topTrailing) {
+                    if !Store.shared.isPlus { PlusBadge().padding(16) }
+                }
             }
             .buttonStyle(.plain)
 

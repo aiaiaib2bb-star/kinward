@@ -76,7 +76,7 @@ struct VoiceBar: View {
             } label: {
                 Image(systemName: isMine && player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: compact ? 12 : 14))
-                    .foregroundStyle(K.surface)
+                    .foregroundStyle(K.onAccent)
                     .frame(width: compact ? 34 : 42, height: compact ? 34 : 42)
                     .background(Circle().fill(K.sageDeep))
             }

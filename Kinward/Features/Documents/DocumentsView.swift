@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct DocumentsView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \DocumentItem.updatedAt, order: .reverse) private var docs: [DocumentItem]
     @State private var gate = BiometricGate.shared
     @State private var filter: DocumentCategory?
@@ -47,7 +48,7 @@ struct DocumentsView: View {
 
                 Marginalia(text: KinwardSection.documents.marginalia).padding(.top, 8)
             }
-            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
+            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }
@@ -77,7 +78,7 @@ struct DocumentsView: View {
     private func chip(_ t: String, on: Bool, action: @escaping () -> Void) -> some View {
         Button { Haptics.tap(); withAnimation(KMotion.gentle) { action() } } label: {
             Text(t).font(KType.body(13.5))
-                .foregroundStyle(on ? K.surface : K.inkSoft)
+                .foregroundStyle(on ? K.onAccent : K.inkSoft)
                 .padding(.horizontal, 14).padding(.vertical, 9)
                 .background(Capsule().fill(on ? K.sageDeep : K.surface)
                     .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -182,7 +183,7 @@ struct DocumentEditor: View {
                                             Image(systemName: c.icon).font(.system(size: 10, weight: .light))
                                             Text(c.title).font(KType.body(13.5))
                                         }
-                                        .foregroundStyle(on ? K.surface : K.inkSoft)
+                                        .foregroundStyle(on ? K.onAccent : K.inkSoft)
                                         .padding(.horizontal, 13).padding(.vertical, 9)
                                         .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                             .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))

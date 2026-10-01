@@ -4,6 +4,7 @@ import SwiftData
 struct LettersView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \Letter.updatedAt, order: .reverse) private var letters: [Letter]
     @Query(sort: \Person.createdAt) private var people: [Person]
     @State private var editing: Letter?
@@ -36,7 +37,7 @@ struct LettersView: View {
 
                 Marginalia(text: KinwardSection.letters.marginalia).padding(.top, 8)
             }
-            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
+            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }
@@ -64,6 +65,8 @@ struct LettersView: View {
 /// A letter, as a piece of folded paper.
 struct LetterCard: View {
     let letter: Letter
+    @AppStorage(LetterFace.storageKey) private var faceRaw = LetterFace.hand.rawValue
+    private var face: LetterFace { LetterFace(rawValue: faceRaw) ?? .hand }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
@@ -90,9 +93,9 @@ struct LetterCard: View {
 
             if !letter.body.isEmpty {
                 Text(letter.body)
-                    .font(.hand(17))
+                    .font(face.font(17))
                     .foregroundStyle(K.inkSoft)
-                    .lineSpacing(5)
+                    .lineSpacing(face.lineSpacing(5))
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
             } else {
@@ -127,7 +130,7 @@ struct LetterCard: View {
                     .fill(LinearGradient(colors: [K.goldSoft.opacity(0.16), .clear],
                                          startPoint: .topTrailing, endPoint: .bottomLeading))
             }
-            .shadow(color: K.ink.opacity(0.06), radius: 14, y: 6)
+            .shadow(color: K.shadowInk.opacity(0.06), radius: 14, y: 6)
         )
         .overlay(RoundedRectangle(cornerRadius: K.rCard, style: .continuous).strokeBorder(K.border, lineWidth: 0.8))
     }

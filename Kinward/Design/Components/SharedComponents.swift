@@ -58,7 +58,7 @@ struct RoundIconButton: View {
                 .foregroundStyle(K.ink)
                 .frame(width: size, height: size)
                 .background(Circle().fill(K.surface).overlay(Circle().strokeBorder(K.border, lineWidth: 0.8)))
-                .shadow(color: K.ink.opacity(0.05), radius: 6, y: 2)
+                .shadow(color: K.shadowInk.opacity(0.05), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
     }
@@ -85,7 +85,7 @@ struct QuietEmptyState: View {
             if let actionTitle, let action {
                 Button(action: { Haptics.tap(); action() }) {
                     Text(actionTitle)
-                        .font(KType.body(15)).foregroundStyle(K.surface)
+                        .font(KType.body(15)).foregroundStyle(K.onAccent)
                         .padding(.horizontal, 24).padding(.vertical, 12)
                         .background(Capsule().fill(K.sageDeep))
                 }
@@ -183,13 +183,13 @@ struct AvatarBadge: View {
                 LinearGradient(colors: tint, startPoint: .topLeading, endPoint: .bottomTrailing)
                 Text(initials)
                     .font(.serif(size * 0.36, .regular))
-                    .foregroundStyle(K.surface.opacity(0.95))
+                    .foregroundStyle(K.onAccent.opacity(0.95))
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().strokeBorder(K.surface.opacity(0.9), lineWidth: 1))
-        .shadow(color: K.ink.opacity(0.08), radius: 5, y: 2)
+        .shadow(color: K.shadowInk.opacity(0.08), radius: 5, y: 2)
     }
     private var tint: [Color] {
         let palettes: [[Color]] = [
@@ -276,8 +276,13 @@ struct KField: View {
     @Binding var text: String
     var serif: Bool = false
     var size: CGFloat = 16
+    /// Vertical, so a long answer wraps onto a second line instead of sliding off
+    /// the right-hand edge where the writer can no longer read it.
     var body: some View {
-        TextField("", text: $text, prompt: Text(placeholder).foregroundStyle(K.inkFaint.opacity(0.85)))
+        TextField("", text: $text,
+                  prompt: Text(placeholder).foregroundStyle(K.inkFaint.opacity(0.85)),
+                  axis: .vertical)
+            .lineLimit(1...)
             .font(serif ? .serif(size) : KType.body(size))
             .foregroundStyle(K.ink)
             .autocorrectionDisabled()
@@ -302,14 +307,17 @@ struct KTextArea: View {
                     .padding(.horizontal, 18).padding(.vertical, 18)
                     .allowsHitTesting(false)
             }
+            // The box does not scroll: it grows, and the page it sits on carries
+            // the writer down to the cursor instead of hiding it under the keyboard.
             TextEditor(text: $text)
                 .font(font)
                 .foregroundStyle(K.ink)
                 .lineSpacing(5)
                 .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
+                .frame(minHeight: minHeight)
                 .padding(.horizontal, 13).padding(.vertical, 11)
         }
-        .frame(minHeight: minHeight)
     }
 }
 

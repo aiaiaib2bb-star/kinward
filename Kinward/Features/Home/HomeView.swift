@@ -4,6 +4,7 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     var profile: UserProfile
 
     @Query(sort: \MemoryEntry.updatedAt, order: .reverse) private var memories: [MemoryEntry]
@@ -23,23 +24,29 @@ struct HomeView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 30) {
                 greeting
-                weeklyQuestion
+                weeklyQuestion.tutorialAnchor(.question)
                 if let resume = resumeItem { continueSection(resume) }
-                quickCapture
+                quickCapture.tutorialAnchor(.quick)
                 if !people.isEmpty { peoplePreview }
                 yourKinward
                 closingLine
             }
             .padding(.horizontal, 22)
             .padding(.top, 8)
-            .padding(.bottom, 190)
+            .padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         // Content scrolls the full height, so give the status bar something to sit on
         // instead of letting tile edges collide with the clock.
         .overlay(alignment: .top) { StatusBarScrim() }
         .onAppear { question = QuestionBank.next(for: profile) }
-        .sheet(item: $answering) { q in AnswerQuestionSheet(question: q, profile: profile) }
+        // Answering does not re-run onAppear, so without this the question you just
+        // answered is still sitting there when the sheet closes.
+        .sheet(item: $answering, onDismiss: {
+            if profile.answeredQuestionIDs.contains(question.id) {
+                withAnimation(KMotion.gentle) { question = QuestionBank.next(for: profile) }
+            }
+        }) { q in AnswerQuestionSheet(question: q, profile: profile) }
         .sheet(item: $openMemory) { m in MemoryEditor(memory: m) }
         .sheet(item: $openLetter) { l in LetterEditor(letter: l) }
         .sheet(isPresented: $showRecorder) { VoiceRecorderSheet() }
@@ -71,7 +78,7 @@ struct HomeView: View {
                     .frame(width: 50, height: 50)
                     .clipShape(Circle())
                     .overlay(Circle().strokeBorder(K.surface, lineWidth: 1.2))
-                    .shadow(color: K.ink.opacity(0.1), radius: 6, y: 2)
+                    .shadow(color: K.shadowInk.opacity(0.1), radius: 6, y: 2)
                 }
                 .buttonStyle(.plain)
 
@@ -81,6 +88,7 @@ struct HomeView: View {
                 }
                 Spacer()
                 RoundIconButton(icon: "magnifyingglass") { router.showSearch = true }
+                    .tutorialAnchor(.search)
             }
             .padding(.top, 10)
 
@@ -147,7 +155,7 @@ struct HomeView: View {
                             Image(systemName: "pencil").font(.system(size: 12, weight: .regular))
                             Text("Answer").font(KType.body(14.5))
                         }
-                        .foregroundStyle(K.surface)
+                        .foregroundStyle(K.onAccent)
                         .padding(.horizontal, 20).padding(.vertical, 11)
                         .background(Capsule().fill(K.sageDeep))
                     }
@@ -183,7 +191,7 @@ struct HomeView: View {
                         .fill(LinearGradient(colors: [K.goldSoft.opacity(0.30), .clear],
                                              startPoint: .topTrailing, endPoint: .bottomLeading))
                 }
-                .shadow(color: K.ink.opacity(0.06), radius: 16, y: 7)
+                .shadow(color: K.shadowInk.opacity(0.06), radius: 16, y: 7)
             )
             .overlay(RoundedRectangle(cornerRadius: K.rLarge, style: .continuous)
                 .strokeBorder(K.border, lineWidth: 0.8))

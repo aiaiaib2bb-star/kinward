@@ -241,10 +241,10 @@ struct FamilyTreeView: View {
                     Image(systemName: "person.badge.plus").font(.system(size: 12, weight: .light))
                     Text("Add more names").font(KType.body(13.5))
                 }
-                .foregroundStyle(K.surface)
+                .foregroundStyle(K.onAccent)
                 .padding(.horizontal, 16).padding(.vertical, 11)
                 .background(Capsule().fill(K.sageDeep))
-                .shadow(color: K.ink.opacity(0.16), radius: 10, y: 4)
+                .shadow(color: K.shadowInk.opacity(0.16), radius: 10, y: 4)
             }
             .buttonStyle(.plain)
         }
@@ -257,7 +257,7 @@ struct FamilyTreeView: View {
                 .font(.system(size: 14, weight: .light)).foregroundStyle(K.ink)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(K.surface).overlay(Circle().strokeBorder(K.border, lineWidth: 0.8)))
-                .shadow(color: K.ink.opacity(0.06), radius: 6, y: 2)
+                .shadow(color: K.shadowInk.opacity(0.06), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
     }
@@ -297,7 +297,7 @@ struct TreeNodeView: View {
                 if person.accessRole != .none {
                     Image(systemName: person.accessRole.icon)
                         .font(.system(size: 7.5, weight: .semibold))
-                        .foregroundStyle(K.surface)
+                        .foregroundStyle(K.onAccent)
                         .frame(width: 17, height: 17)
                         .background(Circle().fill(person.accessRole == .trusted ? K.gold : K.sage))
                         .overlay(Circle().strokeBorder(K.bg, lineWidth: 1.4))

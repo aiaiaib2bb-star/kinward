@@ -130,8 +130,11 @@ struct AnswerQuestionSheet: View {
 
     private var inferredCategory: LessonCategory {
         switch question.theme {
-        case .love: .love; case .work: .career; case .family: .family
+        case .love: .love; case .work: .career
+        case .family, .heritage: .family
         case .belief: .believe; case .legacy: .whatLifeTaught
+        case .people: .relationships; case .hardship: .growingOlder
+        case .time: .growingOlder
         default: .wishIdKnown
         }
     }

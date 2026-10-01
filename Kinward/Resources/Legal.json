@@ -1,0 +1,195 @@
+{
+  "updated": "30 September 2026",
+  "privacy": {
+    "title": "Privacy Policy",
+    "summary": [
+      "Everything you keep in Kinward stays on your iPhone. There is no Kinward account and no Kinward server.",
+      "We can’t see, read or recover anything you write, record or keep.",
+      "No advertising, no analytics, no tracking.",
+      "If you subscribe to Kinward Plus, Apple takes the payment and RevenueCat confirms it, using a random identifier that isn’t linked to you."
+    ],
+    "sections": [
+      {
+        "heading": "Who we are",
+        "paragraphs": [
+          "Kinward is an app for keeping memories, letters, recordings and guidance for the people you love. In this policy, “we” and “us” mean {developer}, who makes Kinward.",
+          "{contact}"
+        ]
+      },
+      {
+        "heading": "What you keep, and where it stays",
+        "paragraphs": [
+          "Everything you add to Kinward — memories, letters, voice recordings, photographs, lessons, guidance, documents, your family tree, and the names, relationships, birthdays and email addresses of the people in it — is stored in Kinward’s private storage on your iPhone.",
+          "None of it is sent to us or to anyone else. We have no server that receives it, so we can’t see it, and we can’t recover it if it’s lost.",
+          "iOS encrypts it on your device. If your iPhone is backed up to iCloud or to a computer, Kinward’s data is part of that backup, under Apple’s terms and your own backup settings.",
+          "Deleting Kinward deletes everything in it. Settings → Erase everything does the same without deleting the app."
+        ]
+      },
+      {
+        "heading": "Permissions Kinward asks for",
+        "paragraphs": [
+          "• Microphone — to record your voice, and only while you are recording.",
+          "• Photos — to add the photographs you choose. Kinward only receives the ones you pick.",
+          "• Camera — to scan documents you want to keep.",
+          "• Face ID — to lock your documents and guidance. iOS only tells Kinward whether it was you; your face data never reaches Kinward.",
+          "You can turn any of these off at any time in the iPhone’s Settings app."
+        ]
+      },
+      {
+        "heading": "When you share",
+        "paragraphs": [
+          "Kinward never sends anything by itself. When you share something — a parcel for someone you trust, something to pass on, a letter — Kinward makes a file on your iPhone and hands it to the iOS share sheet. You choose where it goes: Messages, Mail, AirDrop, Files or another app. From there, that app and the person you send it to look after it, under their own terms.",
+          "When you open a Kinward file someone sent you, what’s inside is copied into Kinward on your iPhone.",
+          "Email addresses you add for trusted people stay on your iPhone. Kinward doesn’t contact them.",
+          "Sealed letters stay on your iPhone and open only when you choose to share them. Nothing is delivered automatically."
+        ]
+      },
+      {
+        "heading": "Kinward Plus and purchases",
+        "paragraphs": [
+          "Purchases are made through Apple’s App Store. Apple processes the payment; we never receive your name, your Apple Account or your payment details. See [Apple’s privacy policy](https://www.apple.com/legal/privacy/).",
+          "To confirm a subscription and unlock Kinward Plus, Kinward uses RevenueCat, a subscription service. When the app checks or makes a purchase, it shares with RevenueCat a random identifier created on your iPhone, your App Store transactions for Kinward, and the technical details that come with any such request — for example the app and iOS version, your App Store country and currency, and your IP address.",
+          "This is used only to know what you’ve bought. It isn’t linked to your identity, used for advertising, sold, or used to track you. See [RevenueCat’s privacy policy](https://www.revenuecat.com/privacy/).",
+          "Nothing you keep in Kinward is ever part of this."
+        ]
+      },
+      {
+        "heading": "What we don’t do",
+        "paragraphs": [
+          "• No advertising.",
+          "• No analytics, crash-reporting or tracking tools.",
+          "• No selling or sharing of personal data.",
+          "• No account, sign-in or profile on a server.",
+          "• No reading or processing of your content — by us, or by any AI service."
+        ]
+      },
+      {
+        "heading": "Children",
+        "paragraphs": [
+          "Kinward is made for adults keeping things for their families. It isn’t directed at children, and we don’t knowingly collect personal information from anyone, children included. What a parent writes about their children stays on that parent’s iPhone."
+        ]
+      },
+      {
+        "heading": "Your choices and rights",
+        "paragraphs": [
+          "Because your content never reaches us, it is entirely in your hands: you can see, change, export or delete any of it in the app, at any time.",
+          "For the purchase records RevenueCat holds, contact us and we’ll arrange access or deletion. Apple keeps its own records of App Store purchases under its privacy policy.",
+          "Depending on where you live — for example under the GDPR in the UK and the European Union, or the CCPA in California — you have the right to access, correct, delete and move your personal data, and to object to how it’s used. We’ll honour those rights for the little data described above. Where the GDPR applies, we rely on the performance of our contract with you (giving you what you paid for) as the legal basis for handling purchase data. You can also complain to your local data protection authority."
+        ]
+      },
+      {
+        "heading": "Changes to this policy",
+        "paragraphs": [
+          "If this policy changes, we’ll update the date at the top. If a change affects what leaves your iPhone, we’ll tell you in the app before it takes effect."
+        ]
+      },
+      {
+        "heading": "Contact",
+        "paragraphs": [
+          "{contact}"
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "summary": [
+      "What you keep in Kinward is yours.",
+      "Kinward is a place to keep things for your family — it isn’t a will or a legal document.",
+      "Kinward Plus is an optional App Store subscription that renews until you cancel it.",
+      "Your content lives only on your iPhone, so keeping a backup is up to you."
+    ],
+    "sections": [
+      {
+        "heading": "Agreeing to these terms",
+        "paragraphs": [
+          "These terms apply when you download or use Kinward. In them, “we” and “us” mean {developer}, who makes Kinward.",
+          "Kinward is licensed to you under [Apple’s Standard Licensed Application End User License Agreement](https://www.apple.com/legal/internet-services/itunes/dev/stdeula/) (the “EULA”). These terms add to the EULA; if the two ever conflict, the EULA wins. If you don’t agree to them, please don’t use Kinward."
+        ]
+      },
+      {
+        "heading": "What Kinward is, and isn’t",
+        "paragraphs": [
+          "Kinward helps you keep memories, letters, recordings, guidance and documents for the people you love, and hand them on when you choose.",
+          "It is not a will, a trust or any other legal instrument, and nothing in it is legal, financial, tax or medical advice. Notes about property, money, accounts or your wishes have no legal effect on their own — for that, please speak to a qualified professional.",
+          "Kinward never delivers anything on its own. Sealed letters and capsules open only when you share them."
+        ]
+      },
+      {
+        "heading": "Your content",
+        "paragraphs": [
+          "What you write, record and add belongs to you. We claim no rights over it, and we never receive it.",
+          "Because it’s kept only on your iPhone, you are responsible for backing it up. If your iPhone is lost or reset, or Kinward is deleted without a backup, we can’t recover what was in it.",
+          "Only add and share things you have the right to — photographs someone else took, for example, or other people’s private information — and please respect the privacy of the people you write about."
+        ]
+      },
+      {
+        "heading": "Kinward Plus",
+        "paragraphs": [
+          "Kinward Plus is an optional, auto-renewing subscription that unlocks extra features — currently the book of your life, passing things on, the Clear look and additional app icons. Everything else in Kinward is free.",
+          "• Plans and prices are shown in the app before you buy. Payment is charged to your Apple Account when you confirm the purchase.",
+          "• Your subscription renews automatically at the end of each period (3 months or 1 year) unless you cancel at least 24 hours before the period ends. Your account is charged for the renewal within the 24 hours before the period ends.",
+          "• You can manage or cancel it in the iPhone’s Settings → your name → Subscriptions, or in Kinward → Settings → Manage subscription. Cancelling stops the next renewal; Plus stays on until the end of the period you’ve paid for.",
+          "• If a free trial is offered, any unused part of it ends when you buy a subscription.",
+          "• Payments are handled by Apple, and refunds are decided by Apple under its policies. You can ask for one at [reportaproblem.apple.com](https://reportaproblem.apple.com).",
+          "• If a price changes, Apple will tell you beforehand as its rules require, and you can cancel before the new price applies.",
+          "• When Plus ends, its features switch off and Kinward returns to its standard look and icon. Nothing you’ve kept is removed."
+        ]
+      },
+      {
+        "heading": "Using Kinward fairly",
+        "paragraphs": [
+          "Please don’t copy, modify, reverse-engineer or resell Kinward, interfere with how it works, or use it to break the law or anyone else’s rights."
+        ]
+      },
+      {
+        "heading": "Ownership",
+        "paragraphs": [
+          "Kinward’s name, design, writing, artwork and code belong to us and our licensors. The EULA gives you a licence to use the app; it doesn’t transfer ownership of it."
+        ]
+      },
+      {
+        "heading": "Changes to Kinward",
+        "paragraphs": [
+          "We work to keep Kinward running well, but we can’t promise it will always be available or free of errors. We may update, change or retire features. If we ever stop offering Kinward Plus, renewals will stop, and you won’t lose anything you’ve kept."
+        ]
+      },
+      {
+        "heading": "Disclaimer",
+        "paragraphs": [
+          "As far as the law allows, Kinward is provided “as is”, without warranties of any kind. Nothing in these terms takes away rights you have as a consumer that the law says can’t be taken away."
+        ]
+      },
+      {
+        "heading": "Limitation of liability",
+        "paragraphs": [
+          "As far as the law allows, we aren’t liable for indirect or consequential losses, or for the loss of content kept only on your device. Our total liability to you for any claim is limited to what you paid for Kinward Plus in the 12 months before the claim. This doesn’t limit liability for death or personal injury caused by negligence, for fraud, or for anything else that can’t be limited by law."
+        ]
+      },
+      {
+        "heading": "Stopping",
+        "paragraphs": [
+          "You can stop using Kinward at any time by deleting it. Deleting the app doesn’t cancel a subscription — cancel it in your App Store settings. The EULA says when your licence to use Kinward ends."
+        ]
+      },
+      {
+        "heading": "Changes to these terms",
+        "paragraphs": [
+          "We may update these terms. We’ll change the date at the top, and if a change is significant we’ll tell you in the app. Using Kinward after a change means you accept the new terms."
+        ]
+      },
+      {
+        "heading": "Governing law",
+        "paragraphs": [
+          "These terms are governed by {law}. This doesn’t take away any protection you have under the laws of the country where you live."
+        ]
+      },
+      {
+        "heading": "Contact",
+        "paragraphs": [
+          "{contact}"
+        ]
+      }
+    ]
+  }
+}

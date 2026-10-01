@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support · Kinward</title>
+<meta name="description" content="Help with Kinward">
+<style>
+:root { --bg:#F5F1E8; --card:#FBF9F4; --ink:#252522; --soft:#5F5D57; --faint:#8C897F;
+        --line:#DDD6C8; --accent:#3B4238; --gold:#A8946A; --mark:#F3DFA2; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#161513; --card:#201F1C; --ink:#F1EDE4; --soft:#BDB8AD; --faint:#8C877C;
+          --line:#34322D; --accent:#C9D1BF; --gold:#C8B488; --mark:#5A4B1F; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+       font: 17px/1.62 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+       -webkit-font-smoothing: antialiased; }
+main { max-width: 680px; margin: 0 auto; padding: 40px 20px 72px; }
+header { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px 20px;
+         padding-bottom: 18px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+.brand { font-family: "New York", "Iowan Old Style", Georgia, serif; font-size: 22px; color: var(--ink);
+         text-decoration: none; }
+nav a { color: var(--soft); text-decoration: none; margin-left: 16px; font-size: 15px; }
+nav a:first-child { margin-left: 0; }
+nav a[aria-current] { color: var(--ink); font-weight: 600; }
+.eyebrow { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin: 0 0 6px; }
+h1 { font-family: "New York", "Iowan Old Style", Georgia, serif; font-weight: 400; font-size: 40px;
+     line-height: 1.12; margin: 0 0 8px; }
+.updated { color: var(--faint); font-size: 14px; margin: 0 0 30px; }
+.short { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; margin-bottom: 36px; }
+.short h2 { font-family: inherit; font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+            color: var(--faint); margin: 0 0 10px; font-weight: 600; }
+.short ul { margin: 0; padding: 0; list-style: none; }
+.short li { padding-left: 26px; position: relative; margin: 8px 0; }
+.short li::before { content: "✓"; position: absolute; left: 2px; color: var(--accent); font-weight: 600; }
+section h2 { font-family: "New York", "Iowan Old Style", Georgia, serif; font-weight: 400; font-size: 25px;
+             margin: 34px 0 10px; }
+p, li { color: var(--soft); }
+section ul { padding-left: 22px; }
+section li { margin: 6px 0; }
+a { color: var(--accent); text-underline-offset: 2px; }
+mark { background: var(--mark); color: var(--ink); padding: 0 3px; border-radius: 3px; }
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--faint); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+<header><a class="brand" href="privacy.html">Kinward</a><nav><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="support.html" aria-current="page">Support</a></nav></header>
+<p class="eyebrow">Kinward</p>
+<h1>Support</h1>
+<p class="updated">We’re glad to help. Write to <mark>[support email]</mark>.</p>
+<section><h2>Where is everything I keep?</h2>
+<p>Only on your iPhone. Kinward has no account and no server, so nothing you write or record is stored anywhere else.</p></section>
+<section><h2>How do I make sure I don’t lose it?</h2>
+<p>Keep your iPhone backed up — iCloud Backup (Settings → your name → iCloud → iCloud Backup) or a backup to your computer. Kinward is included in those backups, and restoring one brings it back.</p>
+<p>To hand things to someone, open them in People and choose Send what they can see, or use Pass it on in Legacy. Either makes a file you can send however you like.</p></section>
+<section><h2>I subscribed to Kinward Plus. How do I restore it on a new iPhone?</h2>
+<p>Open Kinward → Settings → Kinward Plus, then Restore purchases on the Kinward Plus screen. Use the same Apple Account you subscribed with.</p></section>
+<section><h2>How do I cancel Kinward Plus?</h2>
+<p>On your iPhone: Settings → your name → Subscriptions → Kinward. Or in Kinward: Settings → Terms &amp; privacy → Manage subscription. Plus stays on until the end of the period you’ve paid for, and nothing you’ve kept is removed.</p></section>
+<section><h2>Can I get a refund?</h2>
+<p>Refunds are handled by Apple. Request one at <a href="https://reportaproblem.apple.com">reportaproblem.apple.com</a>.</p></section>
+<section><h2>Can you recover something I deleted?</h2>
+<p>We can’t — it never reaches us. A backup of your iPhone from before it was deleted is the only way back.</p></section>
+<section><h2>More</h2><p>Read the <a href="privacy.html">privacy policy</a> and the <a href="terms.html">terms of use</a>.</p></section>
+<footer>© 2026 <mark>[Your name or company]</mark>. Kinward keeps what you keep on your iPhone.</footer>
+</main>
+</body>
+</html>

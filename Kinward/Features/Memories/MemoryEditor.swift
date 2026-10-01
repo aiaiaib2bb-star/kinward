@@ -25,7 +25,9 @@ struct MemoryEditor: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
                         TextField("", text: $memory.title,
-                                  prompt: Text("Give it a name").foregroundStyle(K.inkFaint.opacity(0.8)))
+                                  prompt: Text("Give it a name").foregroundStyle(K.inkFaint.opacity(0.8)),
+                                  axis: .vertical)
+                            .lineLimit(1...)
                             .font(.serif(28)).foregroundStyle(K.ink)
                             .padding(.top, 6)
 
@@ -134,7 +136,7 @@ struct MemoryEditor: View {
                     let on = memory.stage == s
                     Button { Haptics.tap(); memory.stage = s } label: {
                         Text(s.title).font(KType.body(13.5))
-                            .foregroundStyle(on ? K.surface : K.inkSoft)
+                            .foregroundStyle(on ? K.onAccent : K.inkSoft)
                             .padding(.horizontal, 14).padding(.vertical, 9)
                             .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                 .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -168,7 +170,7 @@ struct MemoryEditor: View {
                                 PersonAvatar(person: p, size: 22)
                                 Text(p.name).font(KType.body(14))
                             }
-                            .foregroundStyle(on ? K.surface : K.ink)
+                            .foregroundStyle(on ? K.onAccent : K.ink)
                             .padding(.horizontal, 10).padding(.vertical, 7)
                             .background(Capsule().fill(on ? K.sageDeep : K.surface)
                                 .overlay(Capsule().strokeBorder(on ? .clear : K.border, lineWidth: 0.8)))
@@ -186,7 +188,7 @@ struct MemoryEditor: View {
             HStack(spacing: 12) {
                 Button { Haptics.tap(); VoicePlayer.shared.toggle(ref: ref) } label: {
                     Image(systemName: VoicePlayer.shared.playingRef == ref && VoicePlayer.shared.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 13)).foregroundStyle(K.surface)
+                        .font(.system(size: 13)).foregroundStyle(K.onAccent)
                         .frame(width: 38, height: 38).background(Circle().fill(K.sageDeep))
                 }
                 .buttonStyle(.plain)

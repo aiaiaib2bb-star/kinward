@@ -4,6 +4,7 @@ import SwiftData
 struct GuidanceView: View {
     @Environment(\.modelContext) private var ctx
     @Bindable var router: Router
+    @Environment(\.navBottomInset) private var navBottomInset
     @Query(sort: \GuidanceNote.updatedAt, order: .reverse) private var notes: [GuidanceNote]
     @Query(sort: \Belonging.createdAt, order: .reverse) private var belongings: [Belonging]
 
@@ -49,7 +50,7 @@ struct GuidanceView: View {
 
                 Marginalia(text: KinwardSection.guidance.marginalia).padding(.top, 8)
             }
-            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, 190)
+            .padding(.horizontal, 22).padding(.top, 10).padding(.bottom, navBottomInset)
         }
         .background(PaperBackground())
         .overlay(alignment: .top) { StatusBarScrim() }

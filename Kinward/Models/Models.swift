@@ -251,6 +251,8 @@ enum FamilyBranch: String, Codable, CaseIterable {
     var lastQuestionShown: Date?
     var answeredQuestionIDs: [String] = []
     var skippedQuestionIDs: [String] = []
+    /// The walk around the app is shown once, on the first visit to Home.
+    var hasSeenTutorial: Bool = false
     var createdAt: Date = Date.now
 
     init() {}
@@ -354,6 +356,14 @@ enum FamilyBranch: String, Codable, CaseIterable {
 
     @Relationship(deleteRule: .nullify, inverse: \Person.memories) var people: [Person]? = []
 
+    // MARK: Passed down
+    // `heirloomID` is stable across every hand this passes through, so re-opening
+    // the same parcel twice does not duplicate it. `passedDown` is the chain of
+    // names it travelled, oldest first; empty means this one started here.
+    var heirloomID: String = ""
+    var passedDown: [String] = []
+
+
     init(title: String = "", story: String = "") { self.title = title; self.story = story }
 
     var stage: LifeStage {
@@ -378,6 +388,14 @@ enum FamilyBranch: String, Codable, CaseIterable {
     var updatedAt: Date = Date.now
     var recipient: Person?
 
+    // MARK: Passed down
+    // `heirloomID` is stable across every hand this passes through, so re-opening
+    // the same parcel twice does not duplicate it. `passedDown` is the chain of
+    // names it travelled, oldest first; empty means this one started here.
+    var heirloomID: String = ""
+    var passedDown: [String] = []
+
+
     init(title: String = "", body: String = "") { self.title = title; self.body = body }
 
     var seal: SealCondition {
@@ -396,6 +414,14 @@ enum FamilyBranch: String, Codable, CaseIterable {
     var audioRef: String?
     var createdAt: Date = Date.now
     var updatedAt: Date = Date.now
+
+
+    // MARK: Passed down
+    // `heirloomID` is stable across every hand this passes through, so re-opening
+    // the same parcel twice does not duplicate it. `passedDown` is the chain of
+    // names it travelled, oldest first; empty means this one started here.
+    var heirloomID: String = ""
+    var passedDown: [String] = []
 
     init(category: LessonCategory = .whatLifeTaught, headline: String = "", body: String = "") {
         self.categoryRaw = category.rawValue; self.headline = headline; self.body = body
@@ -416,6 +442,14 @@ enum FamilyBranch: String, Codable, CaseIterable {
     var note: String = ""
     var createdAt: Date = Date.now
     var person: Person?
+
+    // MARK: Passed down
+    // `heirloomID` is stable across every hand this passes through, so re-opening
+    // the same parcel twice does not duplicate it. `passedDown` is the chain of
+    // names it travelled, oldest first; empty means this one started here.
+    var heirloomID: String = ""
+    var passedDown: [String] = []
+
 
     init(title: String = "", fileRef: String = "", duration: Double = 0, levels: [Double] = []) {
         self.title = title; self.fileRef = fileRef; self.duration = duration; self.levels = levels
@@ -493,6 +527,14 @@ enum FamilyBranch: String, Codable, CaseIterable {
     var isRecipe: Bool = false
     var isTradition: Bool = false
     var createdAt: Date = Date.now
+
+    // MARK: Passed down
+    // `heirloomID` is stable across every hand this passes through, so re-opening
+    // the same parcel twice does not duplicate it. `passedDown` is the chain of
+    // names it travelled, oldest first; empty means this one started here.
+    var heirloomID: String = ""
+    var passedDown: [String] = []
+
 
     init(title: String = "", subject: String = "", generation: String = "") {
         self.title = title; self.subject = subject; self.generation = generation

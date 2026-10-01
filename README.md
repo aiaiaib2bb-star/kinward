@@ -6,6 +6,8 @@ A private iOS app for preserving the stories, memories, wisdom, voice, letters a
 practical knowledge you want the people you love to carry forward.
 
 Built in SwiftUI + SwiftData, local-first, no account, no backend, no advertising.
+Everything a person writes, records and keeps is free. **Kinward Plus**, an optional
+subscription sold through RevenueCat, adds how it looks and how it's handed down.
 
 ---
 
@@ -26,6 +28,18 @@ Xcode UI, which `xcodegen generate` overwrites.
 
 `project.yml` is the source of truth for the project — re-run `xcodegen generate`
 after adding files. The generated `Kinward.xcodeproj` is disposable.
+
+**Purchases.** The RevenueCat public SDK key is read at runtime from
+`Kinward/Resources/RevenueCat.plist`, which is gitignored. Create it with one
+`PublicSDKKey` string (`appl_…`). Without it the app runs normally and Plus simply
+reads as not bought. Archiving stops with a clear error if the key is missing, so an
+App Store build can't ship unable to sell.
+
+**Screenshots.** Debug builds have Settings → *For screenshots* → **Load sample
+content**: a four-generation sample family with memories, photographs, sealed
+letters, voice notes, lessons, recipes and documents, and a switch that unlocks Plus
+without buying it. *Remove sample content* takes out exactly what it added. None of
+it is compiled into a Release build.
 
 ---
 
@@ -72,6 +86,40 @@ The seven sections tell a sentence, in order:
 
 > What happened → who mattered → what I want to say → what I learned →
 > what they'll need to know → what they may need → what I leave behind.
+
+---
+
+## Kinward Plus — RevenueCat
+
+A custom SwiftUI paywall (`Features/Paywall/PaywallView.swift`) on top of the
+RevenueCat SDK (`Services/Store.swift`).
+
+| | |
+|---|---|
+| Entitlement | `plus` |
+| Offering | `default`, with an **Annual** and a **3 Month** package |
+| Products | `com.ali.Kinward.plus.yearly` · $14.99 / year, `com.ali.Kinward.plus.quarterly` · $9.99 / 3 months |
+| What it unlocks | The book of your life, Pass it on, the Clear look, eleven alternate app icons |
+| Always free | Every memory, letter, recording, lesson, document and family-tree entry, and sharing them |
+
+- **Prices come from the store.** Plans are built from `offerings.current.annual`
+  and `.threeMonth`, so price, per-month price and any free trial are whatever App
+  Store Connect says, localised. The yearly "Save %" badge is worked out from the two
+  live prices rather than written down.
+- **Opened by reaching.** Anything that needs Plus carries a small *PLUS* badge;
+  tapping it opens the paywall saying what was reached for and highlighting that
+  row. It also opens from Settings → Kinward Plus.
+- **Entitlement kept true.** `customerInfoStream` drives the state, and the last
+  answer is cached so a subscriber with no signal still has what they paid for.
+  Purchases, restores and Ask to Buy all resolve through the same path.
+- **Lapse is gentle.** If Plus ends, the Clear look falls back to Paper and the
+  icon to the default leather one. Nothing anyone kept is touched.
+- **The small print is in the app.** Renewal terms under the button, Restore
+  purchases, and the Terms of Use and Privacy Policy as readable pages in the app
+  itself (Settings → *Terms & privacy*), built from the same `Legal.json` as the
+  website copies in `Website/`.
+- **Nothing is tracked.** RevenueCat sees an anonymous app user id and purchase
+  history, for app functionality only. There's no analytics or advertising SDK.
 
 ---
 
@@ -130,8 +178,10 @@ by year, a photo grid, voice recordings, and places.
 **People** — everyone the archive is for, each with their own page gathering the
 letters, memories, recordings and belongings meant for them.
 
-**Letters** — written on paper, in a real hand (`Bradley Hand`), with a toggle back
-to serif for legibility. Eight starting templates. Each letter can be **sealed** to an
+**Letters** — written on paper. The writer chooses the face in Settings —
+*Handwritten* (`Bradley Hand`), *Classic* (a book serif) or *Plain* — and it applies
+wherever a letter is shown. Every field grows with what's typed, so the start of a
+long title never scrolls out of sight. Eight starting templates. Each letter can be **sealed** to an
 occasion — an 18th birthday, a wedding day, a first child, a hard day — which Kinward
 records but never opens on its own.
 
@@ -170,6 +220,10 @@ and what they're allowed to see. Reachable from People and from Legacy.
   automatic release — by design.
 - *Family history*: parents, grandparents, great-grandparents, origins, traditions,
   recipes.
+- *Pass it on*: what you were given becomes yours to give. A `.kinward` parcel
+  (compressed JSON with its media embedded) opens in another person's Kinward, adds
+  their name to the chain it has travelled, and can be sent on again to the next
+  generation. Opening the same parcel twice never duplicates anything.
 
 **Voice** — real `AVAudioRecorder` capture with live metering; the waveform you see is
 the waveform that was recorded. Pause, resume, listen back, discard, title it, point
@@ -178,8 +232,25 @@ it at a person. Recordings attach to memories, letters, lessons and family stori
 **Search** — one field across memories, letters, lessons, voice, family history,
 people, belongings and guidance.
 
-**Settings** — profile, what you've kept, the weekly question toggle, the lock
-toggle, a plain statement of the privacy model, lock-now, and erase-everything.
+**Settings** — profile, what you've kept, Kinward Plus, the look, *Age with you*,
+the weekly question and lock toggles, how you get around (the dial or a normal tab
+bar), the home-screen icon, how letters are written, the privacy model, Terms &
+privacy, lock-now, erase-everything, and both the introduction and the tour again.
+
+**Two looks** — *Paper* is Kinward's own: warm stock, New York, a hand in the
+margins. *Clear* is the app as the platform would build it: system grouped
+backgrounds, San Francisco throughout, one indigo tint, and it follows the phone
+into dark mode.
+
+**Age with you** — the app wears in slowly with use, the way a book does. The paper
+warms, the ink settles toward sepia, the gilt dulls, the edges tan and foxing comes
+up a spot at a time, each copy in its own pattern. Use drives it (days opened, things
+kept), not the calendar, and it takes years. It can be turned off, and Settings can
+look ahead to show the whole app at any age.
+
+**A first-run tour** — a short spotlight walk around Home, shown once, replayable.
+
+**Twelve app icons** — the default leather relief and eleven alternates.
 
 ---
 
@@ -197,8 +268,12 @@ Everything lives in `Design/KinwardTheme.swift`.
 | Hand | Bradley Hand, for letters and marginalia only |
 | Motion | 0.44–0.62s, spring settle, nothing snaps unless a finger let go |
 
-Every surface carries a deterministic film grain (`GrainOverlay`) so the flats never
-read as digital. Section screens close with handwritten marginalia, as in the design
+Paper is the default; *Clear* swaps every token for a UIKit semantic colour through
+one observable `ThemeStore`, and *Age with you* mixes either palette toward its worn
+form, so the ~1,000 places that say `K.ink` change together.
+
+Every Paper surface carries a deterministic film grain (`GrainOverlay`) so the flats
+never read as digital. Section screens close with handwritten marginalia, as in the design
 sheet.
 
 ---
@@ -210,8 +285,9 @@ App/          KinwardApp (ModelContainer), RootView (onboarding gate + router)
 Design/       Theme, shared components, waveform views
 Navigation/   KinwardSection, Router, RadialWheel, CurvedText
 Models/       12 @Model types + the shared vocabulary enums
-Services/     MediaStore, VoiceRecorder/VoicePlayer, BiometricGate,
-              QuestionBank, Haptics, Housekeeping
+Services/     MediaStore, VoiceRecorder/VoicePlayer, BiometricGate, QuestionBank,
+              Haptics, Housekeeping, Store (RevenueCat), AppIconStore, Heirloom,
+              LegacyExport, SampleContent (debug only)
 Features/     one folder per section
 ```
 
@@ -236,7 +312,7 @@ makes a drawn tree look tidy rather than merely correct.
 - **Housekeeping.** Editors work on real persisted objects, so an abandoned entry can
   survive a dismissed sheet. `Housekeeping.pruneBlankEntries` clears entries with
   literally no content on launch — and only those.
-- **60 questions** in `QuestionBank`, weighted by what the user said they cared about
+- **158 questions** in `QuestionBank`, weighted by what the user said they cared about
   during onboarding and filtered against what they've already answered or set aside.
   Each question knows where its answer belongs (memory, lesson, family story, letter).
 
@@ -250,5 +326,5 @@ public profiles, no feed, no followers, no advertising, no gamification.
 ## Where a backend would go
 
 `MediaStore`, `QuestionBank` and the SwiftData context are the only places that touch
-storage. A sync service would sit behind the same call sites; the views and models
+storage. RevenueCat is the only network call the app makes. A sync service would sit behind the same call sites; the views and models
 would not change.
