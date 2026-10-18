@@ -70,6 +70,8 @@ export function Seat({ room, game, seat, rel, geo, viewSeat, count, onTap }: Sea
   const lang = useLang();
   const m = seatMember(room, seat);
   const speaking = useVoice((s) => (m ? !!s.speaking[m.id] : false));
+  // Only meaningful while we're in voice too: is sound from this person getting through?
+  const link = useVoice((s) => (m && s.joined ? s.links[m.id] : undefined));
   if (!m) return null;
   const pos = geo.seats[rel];
   const side = teamOf(seat) === teamOf(viewSeat) ? 'us' : 'them';
@@ -99,7 +101,7 @@ export function Seat({ room, game, seat, rel, geo, viewSeat, count, onTap }: Sea
         {boomer && <span className="boom-mark">💣</span>}
         <span className="nm">{displayName(m.profile, lang)}</span>
         {m.inVoice && (
-          <span className={`mic${m.micOn ? ' on' : ''}`}>
+          <span className={`mic${m.micOn ? ' on' : ''}${link === 'trying' ? ' trying' : ''}`} title={link === 'trying' ? t('voice_trying') : undefined}>
             <MicIcon size={12} off={!m.micOn} />
           </span>
         )}

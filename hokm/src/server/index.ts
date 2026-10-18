@@ -56,6 +56,17 @@ const httpServer = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' }).end('ok');
     return;
   }
+  // Counts only, no names: lets a deploy wait until nobody is mid-game (a restart ends every table).
+  if (req.url === '/status') {
+    const tables = [...rooms.values()];
+    const status = {
+      online: sessions.size,
+      tables: tables.length,
+      gamesInProgress: tables.filter((r) => r.match && !r.match.ended && r.onlineHumans.length > 0).length,
+    };
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(status));
+    return;
+  }
   serveStatic(CLIENT_DIR, req, res);
 });
 

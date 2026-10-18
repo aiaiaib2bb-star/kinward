@@ -191,6 +191,11 @@ export const en = {
   voice_needs_https: 'Voice chat needs a secure (https) link',
   voice_joined: "You're in voice chat",
   voice_unsupported: "This browser can't do voice chat",
+  mic_lost: 'Your phone paused the microphone. Tap anywhere to turn it back on.',
+  mic_back: 'Microphone back on',
+  voice_reconnect: 'Reconnect voice',
+  voice_reconnect_sub: 'Not hearing someone? This starts every voice connection afresh.',
+  voice_trying: 'Connecting voice…',
   in_voice: '{n} in voice',
 
   shop_title: 'Shop',
@@ -585,6 +590,11 @@ export const fa: Record<StringKey, string> = {
   voice_needs_https: 'گفتگوی صوتی به لینک امن (https) نیاز دارد',
   voice_joined: 'وارد گفتگوی صوتی شدی',
   voice_unsupported: 'این مرورگر گفتگوی صوتی ندارد',
+  mic_lost: 'گوشی میکروفون را متوقف کرد. هر جای صفحه بزن تا دوباره روشن شود.',
+  mic_back: 'میکروفون دوباره روشن شد',
+  voice_reconnect: 'اتصال دوباره صدا',
+  voice_reconnect_sub: 'صدای کسی را نمی‌شنوی؟ این همه اتصال‌های صوتی را از نو برقرار می‌کند.',
+  voice_trying: 'در حال وصل کردن صدا…',
   in_voice: '{n} نفر در گفتگو',
 
   shop_title: 'فروشگاه',

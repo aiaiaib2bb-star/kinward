@@ -33,6 +33,7 @@ export function VoiceButton({ size = 46, inVoiceCount = 0 }: { size?: number; in
   const hasMic = useVoice((s) => s.hasMic);
   const micOn = useVoice((s) => s.micOn);
   const needsTap = useVoice((s) => s.needsTap);
+  const micLost = useVoice((s) => s.micLost);
   const mode = useSettings((s) => s.voiceMode);
   const [menu, setMenu] = useState(false);
   const pressTimer = useRef<number | null>(null);
@@ -86,7 +87,7 @@ export function VoiceButton({ size = 46, inVoiceCount = 0 }: { size?: number; in
     <>
       <button
         type="button"
-        className={`voice-btn ${state}${needsTap ? ' needs-tap' : ''}`}
+        className={`voice-btn ${state}${needsTap || micLost ? ' needs-tap' : ''}`}
         style={{ width: size, height: size }}
         aria-label={label}
         title={label}
@@ -113,6 +114,19 @@ export function VoiceButton({ size = 46, inVoiceCount = 0 }: { size?: number; in
               <MicIcon off={micOn} /> {micOn ? t('mic_off') : t('mic_on')}
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-turq btn-block"
+            onClick={() => {
+              mesh.reconnect();
+              setMenu(false);
+            }}
+          >
+            🔄 {t('voice_reconnect')}
+          </button>
+          <p className="muted" style={{ margin: '-4px 4px 4px', fontSize: 13, textAlign: 'center' }}>
+            {t('voice_reconnect_sub')}
+          </p>
           <button
             type="button"
             className="btn btn-rose btn-block"

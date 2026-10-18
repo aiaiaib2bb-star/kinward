@@ -1484,3 +1484,15 @@
     padding: 6px 10px;
   }
 }
+
+/* A voice connection to this player isn't carrying sound yet: the mic badge blinks amber. */
+.seat-tag .mic.trying {
+  color: #ffb547;
+  animation: mic-trying 1s ease-in-out infinite;
+}
+
+@keyframes mic-trying {
+  50% {
+    opacity: 0.35;
+  }
+}
