@@ -109,7 +109,12 @@ export function HandResult({ game, room, viewSeat, spectating }: { game: GameVie
             {spectating ? t('team_b') : t('them')} {fmt(game.scores[1 - mine])}
           </span>
         </div>
-        <div className="next">👑 {r.nextHakem === r.hakem ? t('stays_hakem', { name: nextName }) : t('next_hakem', { name: nextName })}</div>
+        <div className="next">
+          👑{' '}
+          {!spectating && r.nextHakem === viewSeat
+            ? t(r.nextHakem === r.hakem ? 'you_stay_hakem' : 'you_next_hakem')
+            : t(r.nextHakem === r.hakem ? 'stays_hakem' : 'next_hakem', { name: nextName })}
+        </div>
         <div className="countdown">
           <i style={{ animationDuration: `${left}ms` }} />
         </div>

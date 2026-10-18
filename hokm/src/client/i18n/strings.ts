@@ -136,6 +136,8 @@ export const en = {
   hakem_kot: 'HAKEM KOT!',
   next_hakem: 'Next Hakem: {name}',
   stays_hakem: '{name} stays Hakem',
+  you_next_hakem: "You're the next Hakem",
+  you_stay_hakem: 'You stay Hakem',
 
   victory: 'Victory!',
   defeat: 'Defeat',
@@ -427,6 +429,8 @@ export const fa: Record<StringKey, string> = {
   hakem_kot: 'حاکم کُت!',
   next_hakem: 'حاکم بعدی: {name}',
   stays_hakem: '{name} حاکم می‌ماند',
+  you_next_hakem: 'حاکم بعدی تویی',
+  you_stay_hakem: 'تو حاکم می‌مانی',
 
   victory: 'پیروزی!',
   defeat: 'شکست',
