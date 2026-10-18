@@ -8,6 +8,7 @@ import './styles/ui.css';
 import './styles/cards.css';
 import './styles/cosmetics.css';
 import './styles/game.css';
+import './styles/features.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

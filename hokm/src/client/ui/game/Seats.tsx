@@ -76,10 +76,15 @@ export function Seat({ room, game, seat, rel, geo, viewSeat, count, onTap }: Sea
   const away = game.away.includes(seat);
   const badge = m.profile.bot ? t('bot_badge') : !m.online ? t('offline_badge') : away || m.auto ? t('auto_badge') : null;
   const isActor = actorOf(game) === seat;
-  const size = Math.round(Math.min(56, geo.w * 0.14));
+  const size = Math.round(Math.min(72, geo.w * 0.175, geo.h * 0.09));
+  const boomer = game.boom?.by === seat;
   // Anchored on the avatar's centre, so the name and cards below never push it around.
   return (
-    <div className={`seat rel-${rel}${isActor ? ' acting' : ''}`} data-member={m.id} style={{ left: pos.x, top: pos.y - size / 2 } as CSSProperties}>
+    <div
+      className={`seat rel-${rel}${isActor ? ' acting' : ''}${boomer ? ' boomer' : ''}`}
+      data-member={m.id}
+      style={{ left: pos.x, top: pos.y - size / 2 } as CSSProperties}
+    >
       <Avatar
         profile={m.profile}
         size={size}
@@ -91,6 +96,7 @@ export function Seat({ room, game, seat, rel, geo, viewSeat, count, onTap }: Sea
         onClick={() => onTap(m)}
       />
       <div className={`seat-tag ${side}`}>
+        {boomer && <span className="boom-mark">💣</span>}
         <span className="nm">{displayName(m.profile, lang)}</span>
         {m.inVoice && (
           <span className={`mic${m.micOn ? ' on' : ''}`}>
@@ -143,8 +149,14 @@ export function TopBar({
       <Pips won={game.tricksWon[team]} side={side} />
     </div>
   );
+  const boomSide = game.boom ? (teamOf(game.boom.by) === mine ? 'us' : 'them') : null;
   return (
     <div className="topbar ltr">
+      {game.boom && (
+        <div className={`boom-chip ${boomSide}`}>
+          💣 {t('boom')} · {game.tricksWon[game.boom.team]}/13
+        </div>
+      )}
       <button type="button" className="icon-btn" onClick={onMenu} aria-label={t('menu')}>
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
           <path d="M4 7h16M4 12h16M4 17h16" />

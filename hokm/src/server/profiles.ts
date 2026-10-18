@@ -2,8 +2,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_EQUIPPED, EQUIP_SLOTS, type EquipSlot, STARTER_ITEMS, getItem } from '../shared/catalog';
-import { ECONOMY, LIMITS, levelOf } from '../shared/constants';
-import type { Profile, PublicProfile, Stats } from '../shared/protocol';
+import { ECONOMY, LIMITS, levelOf, weekKey } from '../shared/constants';
+import type { GameRecord, LeaderboardEntry, LeaderboardView, Profile, PublicProfile, RecordPlayer, Stats } from '../shared/protocol';
 
 // Profiles live in two places on purpose. The server keeps them in a JSON
 // file, and every client also holds its own profile as a signed token. If
@@ -26,6 +26,9 @@ const EMPTY_STATS: Stats = {
   streak: 0,
   bestStreak: 0,
   coinsEarned: 0,
+  boomsCalled: 0,
+  booms: 0,
+  swaps: 0,
 };
 
 export function cleanName(raw: unknown): string {
@@ -160,6 +163,8 @@ export class ProfileStore {
       equipped,
       stats: { ...EMPTY_STATS },
       daily: { last: 0, streak: 0 },
+      history: [],
+      week: { key: weekKey(), played: 0, won: 0 },
       createdAt: Date.now(),
       v: 1,
     };
@@ -205,6 +210,39 @@ export class ProfileStore {
     return null;
   }
 
+  /**
+   * Players ranked by games won, all time or this week. `among` narrows it to
+   * a set of players (the people you've played with). Ties go to whoever
+   * needed fewer games.
+   */
+  leaderboard(period: LeaderboardView['period'], scope: LeaderboardView['scope'], you: Profile): LeaderboardView {
+    const week = weekKey();
+    const among =
+      scope === 'played' ? new Set([you.id, ...you.history.flatMap((g) => [g.partner, ...g.opponents]).flatMap((x) => (x?.id ? [x.id] : []))]) : null;
+    const tally = (p: Profile) => (period === 'week' ? (p.week.key === week ? p.week : { played: 0, won: 0 }) : p.stats);
+    const rows = [...this.profiles.values()]
+      .filter((p) => (!among || among.has(p.id)) && tally(p).played > 0)
+      .map((p) => ({ p, ...tally(p) }))
+      .sort((a, b) => b.won - a.won || a.played - b.played || a.p.createdAt - b.p.createdAt);
+    const entry = (r: (typeof rows)[number], i: number): LeaderboardEntry => ({
+      rank: i + 1,
+      id: r.p.id,
+      name: r.p.name,
+      level: levelOf(r.p.xp),
+      equipped: { ...r.p.equipped },
+      won: r.won,
+      played: r.played,
+    });
+    const mine = rows.findIndex((r) => r.p.id === you.id);
+    return {
+      period,
+      scope,
+      entries: rows.slice(0, LIMITS.leaderboard).map(entry),
+      you: mine >= 0 ? entry(rows[mine], mine) : null,
+      total: rows.length,
+    };
+  }
+
   /** Opens the daily gift if it's ready. Consecutive days grow it, up to a week. */
   claimDaily(p: Profile, now = Date.now()): { coins: number; streak: number } | null {
     const hours = (now - p.daily.last) / 3_600_000;
@@ -238,7 +276,40 @@ function normalize(raw: Profile): Profile {
     equipped,
     stats: { ...EMPTY_STATS, ...(raw.stats ?? {}) },
     daily: { last: Number(raw.daily?.last) || 0, streak: Number(raw.daily?.streak) || 0 },
+    history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.history).flatMap(cleanRecord) : [],
+    week: { key: Number(raw.week?.key) || 0, played: Number(raw.week?.played) || 0, won: Number(raw.week?.won) || 0 },
     createdAt: Number(raw.createdAt) || Date.now(),
     v: Number(raw.v) || 1,
   };
+}
+
+function cleanPlayer(raw: unknown): RecordPlayer | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as RecordPlayer;
+  const name = typeof r.name === 'string' ? r.name.slice(0, 40) : '';
+  if (r.bot) return { name, bot: true };
+  return typeof r.id === 'string' ? { id: r.id.slice(0, 40), name } : { name };
+}
+
+/** A past game read back from a token or the file: anything malformed is dropped. */
+function cleanRecord(raw: unknown): GameRecord[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const r = raw as GameRecord;
+  const n = (v: unknown) => Math.max(0, Math.floor(Number(v) || 0));
+  if (!Array.isArray(r.score) || !Number.isFinite(Number(r.at))) return [];
+  return [
+    {
+      at: Number(r.at),
+      won: !!r.won,
+      reason: r.reason === 'surrender' || r.reason === 'boom' ? r.reason : 'score',
+      score: [n(r.score[0]), n(r.score[1])],
+      target: n(r.target),
+      hands: n(r.hands),
+      kots: n(r.kots),
+      boom: r.boom === 'won' || r.boom === 'lost' ? r.boom : undefined,
+      coins: n(r.coins),
+      partner: cleanPlayer(r.partner),
+      opponents: Array.isArray(r.opponents) ? r.opponents.slice(0, 2).flatMap((o) => cleanPlayer(o) ?? []) : [],
+    },
+  ];
 }

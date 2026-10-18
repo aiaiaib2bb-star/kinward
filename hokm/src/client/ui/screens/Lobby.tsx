@@ -10,7 +10,7 @@ import { go } from '../../state/app';
 import { mySeat, seatMember } from '../../state/selectors';
 import { Avatar } from '../components/Avatar';
 import { ChatButton, ChatSheet } from '../components/Chat';
-import { Dialog, Segmented, Sheet } from '../components/common';
+import { Dialog, Segmented, Sheet, Toggle } from '../components/common';
 import { shareRoom } from '../components/share';
 import { VoiceButton } from '../components/VoiceButton';
 import { useVoice } from '../../voice/mesh';
@@ -186,6 +186,20 @@ export function Lobby({ room }: { room: RoomView }) {
             />
             <p className="setting-hint">{room.settings.shuffleMode === 'real' ? t('shuffle_real_hint') : t('shuffle_random_hint')}</p>
           </div>
+          <Toggle
+            on={room.settings.booms}
+            disabled={!isHost}
+            label={`💣 ${t('settings_booms')}`}
+            sub={t('settings_booms_sub')}
+            onChange={(v) => net.roomSettings({ booms: v })}
+          />
+          <Toggle
+            on={room.settings.swaps}
+            disabled={!isHost}
+            label={`🔄 ${t('settings_swaps')}`}
+            sub={t('settings_swaps_sub')}
+            onChange={(v) => net.roomSettings({ swaps: v })}
+          />
         </div>
 
         <div className="lobby-footer">

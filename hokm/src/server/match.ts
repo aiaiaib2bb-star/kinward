@@ -1,8 +1,11 @@
-import { botChooseTrump, botPlay } from '../shared/bot';
+import { botAcceptsSwap, botChooseTrump, botPlay } from '../shared/bot';
 import { type Card, type Suit, isCard, isSuit, newDeck, rankOf, suitOf } from '../shared/cards';
 import { SLAM, T, dealDuration } from '../shared/constants';
 import type { DeckOp, GameView, MatchResultView, Phase, RoomSettings } from '../shared/protocol';
 import {
+  HAND_SIZE,
+  type HandOutcome,
+  POINTS_HAND,
   type Play,
   TRICKS_TO_WIN_HAND,
   beats,
@@ -35,11 +38,16 @@ export interface MatchStats {
   hakemKots: [number, number];
   timesHakem: number[];
   slams: number[];
+  /** Booms each team called, and the ones that came off. */
+  boomsCalled: [number, number];
+  booms: [number, number];
+  /** Hands each seat traded away. */
+  swaps: number[];
 }
 
 export interface MatchEnd {
   winnerTeam: number;
-  reason: 'score' | 'surrender';
+  reason: 'score' | 'surrender' | 'boom';
   surrenderTeam: number | null;
   stats: MatchStats;
 }
@@ -51,6 +59,10 @@ export interface MatchHooks {
   slam(seat: number, power: number, card: Card): void;
   emote(seat: number, emote: string): void;
   toast(key: string, params?: Record<string, string | number>): void;
+  /** Someone called Boom. */
+  boom(seat: number): void;
+  /** A swap offer was answered (or ran out, which counts as a no). */
+  swapped(from: number, to: number, accepted: boolean): void;
   ended(end: MatchEnd): void;
 }
 
@@ -84,6 +96,9 @@ export class Match {
   hakemReveals: Play[] = [];
   handResult: GameView['handResult'] = null;
   surrender: { team: number; by: number; expires: number } | null = null;
+  boom: { team: number; by: number } | null = null;
+  swapOffer: { from: number; to: number; expires: number } | null = null;
+  readonly swapsUsed = new Set<number>();
   result: MatchResultView | null = null;
   ended: MatchEnd | null = null;
   readonly away = new Set<number>();
@@ -94,6 +109,9 @@ export class Match {
     hakemKots: [0, 0],
     timesHakem: [0, 0, 0, 0],
     slams: [0, 0, 0, 0],
+    boomsCalled: [0, 0],
+    booms: [0, 0],
+    swaps: [0, 0, 0, 0],
   };
 
   private deck: Card[] = [];
@@ -106,6 +124,7 @@ export class Match {
   private timer: NodeJS.Timeout | null = null;
   private pending: (() => void) | null = null;
   private surrenderTimer: NodeJS.Timeout | null = null;
+  private swapTimer: NodeJS.Timeout | null = null;
   private paused = false;
 
   constructor(
@@ -133,6 +152,7 @@ export class Match {
   dispose() {
     this.clearTimer();
     this.clearSurrender();
+    this.clearSwapTimer();
   }
 
   // ——— Timing ———
@@ -198,6 +218,13 @@ export class Match {
     if (this.paused || this.ended) return;
     const seat = this.actor();
     if (seat === null) return;
+    if (this.swapOffer) {
+      // The table waits for the answer; the clock starts afresh after it.
+      this.clearTimer();
+      this.deadline = null;
+      this.deadlineFrom = null;
+      return;
+    }
     const control = this.controlOf(seat);
     const now = Date.now();
     let delay: number | null;
@@ -337,6 +364,10 @@ export class Match {
     this.trickWinnerSeat = null;
     this.lastTrick = null;
     this.handResult = null;
+    this.boom = null;
+    this.swapOffer = null;
+    this.swapsUsed.clear();
+    this.clearSwapTimer();
     this.ops = { shuffles: 0, cuts: 0, last: null, seq: this.ops.seq };
     if (this.settings.shuffleMode === 'random') this.deck = fisherYates(this.deck, this.rng);
     this.stats.timesHakem[this.hakem!] += 1;
@@ -456,6 +487,7 @@ export class Match {
     if (this.paused) return 'paused';
     if (this.phase !== 'play') return 'not_now';
     if (seat !== this.turn) return 'not_your_turn';
+    if (this.swapOffer) return 'swap_pending';
     if (!isCard(card) || !isLegalPlay(this.hands[seat], this.trick, card)) return 'illegal';
     this.present(seat);
     this.applyPlay(seat, card, Number.isFinite(power) ? power : 0);
@@ -488,31 +520,46 @@ export class Match {
       this.trick = [];
       this.trickSlams = {};
       this.trickWinnerSeat = null;
-      if (this.tricksWon[teamOf(winner)] >= TRICKS_TO_WIN_HAND) return this.endHand();
+      if (this.boom) {
+        // A Boom plays on past seven: it ends at the first trick lost, or at thirteen.
+        if (teamOf(winner) !== this.boom.team) return this.endHand(false);
+        if (this.tricksWon[this.boom.team] >= HAND_SIZE) return this.endHand(true);
+      } else if (this.tricksWon[teamOf(winner)] >= TRICKS_TO_WIN_HAND) return this.endHand();
       this.setPhase('play');
       this.turn = winner;
       this.startActor(this.turnLimit());
     });
   }
 
-  private endHand() {
+  /** `boomWon` is set when the hand ends a Boom: true if the callers took all thirteen. */
+  private endHand(boomWon?: boolean) {
     const hakem = this.hakem!;
-    const outcome = handOutcome(this.tricksWon, teamOf(hakem))!;
+    const boom = this.boom && boomWon !== undefined ? { ...this.boom, won: boomWon } : undefined;
+    let outcome: HandOutcome;
+    if (boom) {
+      // A Boom that comes off takes the whole game; one that fails just loses the hand.
+      const winnerTeam = boom.won ? boom.team : 1 - boom.team;
+      const points = boom.won ? Math.max(1, this.settings.targetScore - this.scores[winnerTeam]) : POINTS_HAND;
+      outcome = { winnerTeam, points, kot: false, hakemKot: false };
+      if (boom.won) this.stats.booms[boom.team] += 1;
+    } else {
+      outcome = handOutcome(this.tricksWon, teamOf(hakem))!;
+    }
     this.scores[outcome.winnerTeam] += outcome.points;
     this.stats.hands += 1;
     this.stats.handsWon[outcome.winnerTeam] += 1;
     if (outcome.hakemKot) this.stats.hakemKots[outcome.winnerTeam] += 1;
     else if (outcome.kot) this.stats.kots[outcome.winnerTeam] += 1;
     const next = nextHakem(hakem, outcome.winnerTeam);
-    this.handResult = { ...outcome, tricks: [this.tricksWon[0], this.tricksWon[1]], nextHakem: next, hakem };
+    this.handResult = { ...outcome, tricks: [this.tricksWon[0], this.tricksWon[1]], nextHakem: next, hakem, boom };
     this.deck = gatherDeck(this.tricks, this.hands);
     this.hands = [[], [], [], []];
     this.setPhase('handEnd');
     this.hooks.changed();
-    if (outcome.kot) this.botsReact(outcome.winnerTeam);
+    if (outcome.kot || boom) this.botsReact(outcome.winnerTeam);
     const over = this.scores[outcome.winnerTeam] >= this.settings.targetScore;
     this.after(T.handEnd, () => {
-      if (over) return this.finish(outcome.winnerTeam, 'score', null);
+      if (over) return this.finish(outcome.winnerTeam, boom?.won ? 'boom' : 'score', null);
       this.hakem = next;
       this.beginHand();
     });
@@ -531,12 +578,92 @@ export class Match {
   private finish(winnerTeam: number, reason: MatchEnd['reason'], surrenderTeam: number | null) {
     this.clearTimer();
     this.clearSurrender();
+    this.clearSwapTimer();
     this.surrender = null;
+    this.swapOffer = null;
     this.turn = null;
     this.ended = { winnerTeam, reason, surrenderTeam, stats: this.stats };
     this.setPhase('matchEnd');
     this.hooks.ended(this.ended);
     this.hooks.changed();
+  }
+
+  // ——— Boom ———
+
+  /**
+   * Calls Boom for the caller's team: they must take all thirteen tricks.
+   * It can be called from the moment play starts until the first trick is
+   * taken, once a hand.
+   */
+  callBoom(seat: number): string | null {
+    if (this.settings.booms === false) return 'boom_off';
+    if (this.ended || this.paused) return 'not_now';
+    if (this.boom) return 'boom_taken';
+    if (this.phase !== 'play' || this.tricks.length > 0) return 'boom_late';
+    this.present(seat);
+    const team = teamOf(seat);
+    this.boom = { team, by: seat };
+    this.stats.boomsCalled[team] += 1;
+    this.hooks.boom(seat);
+    this.hooks.changed();
+    return null;
+  }
+
+  // ——— Swapping hands ———
+
+  /**
+   * Offers your whole hand to an opponent for theirs. Only between tricks,
+   * so both hands hold the same number of cards, and once a hand per
+   * player. The clock stops until they answer.
+   */
+  offerSwap(seat: number, to: number): string | null {
+    if (this.settings.swaps === false) return 'swap_off';
+    if (this.ended || this.paused) return 'not_now';
+    if (!Number.isInteger(to) || to < 0 || to > 3 || teamOf(to) === teamOf(seat)) return 'swap_target';
+    if (this.swapOffer) return 'swap_pending';
+    if (this.swapsUsed.has(seat)) return 'swap_used';
+    if (this.phase !== 'play' || this.trick.length > 0 || this.hands[seat].length !== this.hands[to].length) return 'swap_between';
+    this.present(seat);
+    this.swapsUsed.add(seat);
+    const expires = Date.now() + this.ms(T.swapOffer);
+    this.swapOffer = { from: seat, to, expires };
+    this.armActor();
+    const control = this.controlOf(to);
+    const answerIn = control === 'human' ? expires - Date.now() : this.ms(randomInt(this.rng, 1400, 2800));
+    const answer = control === 'bot' && botAcceptsSwap(this.hands[to], this.trump, this.rng);
+    this.swapTimer = setTimeout(() => {
+      this.swapTimer = null;
+      guard(() => this.resolveSwap(answer));
+    }, answerIn);
+    this.hooks.changed();
+    return null;
+  }
+
+  answerSwap(seat: number, accept: boolean) {
+    if (!this.swapOffer || this.swapOffer.to !== seat || this.ended) return;
+    this.present(seat);
+    this.resolveSwap(accept);
+  }
+
+  private resolveSwap(accept: boolean) {
+    const offer = this.swapOffer;
+    if (!offer) return;
+    this.clearSwapTimer();
+    this.swapOffer = null;
+    const ok = accept && this.phase === 'play' && this.trick.length === 0;
+    if (ok) {
+      [this.hands[offer.from], this.hands[offer.to]] = [this.hands[offer.to], this.hands[offer.from]];
+      this.stats.swaps[offer.from] += 1;
+      this.stats.swaps[offer.to] += 1;
+    }
+    this.hooks.swapped(offer.from, offer.to, ok);
+    if (this.phase === 'play') this.startActor(this.turnLimit());
+    else this.hooks.changed();
+  }
+
+  private clearSwapTimer() {
+    if (this.swapTimer) clearTimeout(this.swapTimer);
+    this.swapTimer = null;
   }
 
   // ——— Surrender ———
@@ -620,6 +747,9 @@ export class Match {
       handResult: this.handResult,
       matchResult: this.result,
       surrender: this.surrender,
+      boom: this.boom,
+      swapOffer: this.swapOffer,
+      swapsUsed: [...this.swapsUsed],
       away: [...this.away],
     };
   }

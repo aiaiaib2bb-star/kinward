@@ -55,6 +55,16 @@ const RULES = {
     ],
     scoringNote: 'The first team to reach the target score (7 unless the table chose otherwise) wins the game.',
     extras: [
+      {
+        icon: '💣',
+        title: 'Boom',
+        body: 'Think your team can take all 13 tricks? Call Boom from the 💣 button, any time before the first trick is taken. Take every trick and your team wins the whole game on the spot, with 150 bonus coins. Lose a single trick and the hand is over: the other team wins it. One Boom per hand; the host can switch Booms off.',
+      },
+      {
+        icon: '🔄',
+        title: 'Swap hands',
+        body: 'Between tricks, you can offer to trade your whole hand with one of your opponents, blind. If they accept, you swap cards. Each player gets one offer per hand, and the table waits while the other player decides (12 seconds). The host can switch swaps off.',
+      },
       { icon: '🏳️', title: 'Surrender', body: 'If both partners agree, a team can surrender in the middle of a game. They lose that game and earn no coins.' },
       {
         icon: '💥',
@@ -119,6 +129,16 @@ const RULES = {
     ],
     scoringNote: 'اولین تیمی که به امتیاز هدف برسد (اگر میز چیز دیگری انتخاب نکرده باشد، ۷) برنده بازی است.',
     extras: [
+      {
+        icon: '💣',
+        title: 'بوم',
+        body: 'فکر می‌کنی تیمت هر ۱۳ دست را می‌برد؟ قبل از اینکه اولین دست برده شود، از دکمه 💣 «بوم» بده. اگر همه دست‌ها را ببرید، همان لحظه کل بازی را برده‌اید و ۱۵۰ سکه جایزه می‌گیرید. اگر حتی یک دست را ببازید، آن دست تمام است و تیم مقابل آن را می‌برد. در هر دست فقط یک بوم؛ میزبان می‌تواند بوم را خاموش کند.',
+      },
+      {
+        icon: '🔄',
+        title: 'عوض کردن دست',
+        body: 'بین دست‌ها می‌توانی پیشنهاد بدهی کل کارت‌هایت را، ندیده، با یکی از حریف‌ها عوض کنی. اگر قبول کند، کارت‌هایتان جابه‌جا می‌شود. هر نفر در هر دست یک بار می‌تواند پیشنهاد بدهد و تا حریف تصمیم بگیرد (۱۲ ثانیه) میز منتظر می‌ماند. میزبان می‌تواند این را خاموش کند.',
+      },
       { icon: '🏳️', title: 'تسلیم', body: 'اگر هر دو هم‌تیمی موافق باشند، تیم می‌تواند وسط بازی تسلیم شود. آن بازی را می‌بازند و سکه‌ای نمی‌گیرند.' },
       {
         icon: '💥',

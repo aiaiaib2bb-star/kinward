@@ -4,8 +4,9 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
-import type { Ack, ClientToServer, Profile, RoomSettings, ServerToClient } from '../shared/protocol';
+import type { Ack, ClientToServer, Lang, Profile, RoomSettings, ServerToClient } from '../shared/protocol';
 import type { Rng } from '../shared/shuffle';
+import { gifsEnabled, searchGifs, vettedGif } from './gifs';
 import { iceServers } from './ice';
 import { ProfileStore } from './profiles';
 import { type GameSocket, Room } from './room';
@@ -75,6 +76,7 @@ function ok<T>(ack: Ack<T> | undefined, data?: T) {
 
 io.on('connection', (raw: GameSocket) => {
   let profile: Profile | null = null;
+  let lang: Lang = 'en';
   // Every handler runs guarded: a bug in one event must not take every table down with it.
   const socket = new Proxy(raw, {
     get(target, prop, receiver) {
@@ -97,9 +99,14 @@ io.on('connection', (raw: GameSocket) => {
   // Token buckets: bursts are fine, floods are not. Voice negotiation gets its
   // own, roomier one — a phone on mobile data sends a flurry of ICE candidates
   // to every other player at once, and dropping them breaks the call.
-  const buckets = { game: { tokens: 40, cap: 40, rate: 20, at: Date.now() }, voice: { tokens: 240, cap: 240, rate: 60, at: Date.now() } };
+  // GIF searches reach GIPHY, so they get a tight bucket of their own.
+  const buckets = {
+    game: { tokens: 40, cap: 40, rate: 20, at: Date.now() },
+    voice: { tokens: 240, cap: 240, rate: 60, at: Date.now() },
+    gif: { tokens: 8, cap: 8, rate: 1, at: Date.now() },
+  };
   socket.use(([event], next) => {
-    const b = event === 'voice:signal' ? buckets.voice : buckets.game;
+    const b = event === 'voice:signal' ? buckets.voice : event === 'gif:search' ? buckets.gif : buckets.game;
     const now = Date.now();
     b.tokens = Math.min(b.cap, b.tokens + ((now - b.at) / 1000) * b.rate);
     b.at = now;
@@ -128,6 +135,7 @@ io.on('connection', (raw: GameSocket) => {
   socket.on('hello', async (msg, ack) => {
     if (typeof ack !== 'function') return;
     const token = typeof msg?.token === 'string' ? msg.token : '';
+    if (msg?.lang === 'fa' || msg?.lang === 'en') lang = msg.lang;
     let p = token ? store.resolve(token) : null;
     if (!p) {
       if (typeof msg?.name !== 'string' || !msg.name.trim()) return fail(ack, 'need_profile');
@@ -153,6 +161,7 @@ io.on('connection', (raw: GameSocket) => {
         iceServers: await iceServers(),
         serverNow: Date.now(),
         room: room()?.code ?? null,
+        features: { gifs: gifsEnabled },
       },
     });
   });
@@ -300,11 +309,59 @@ io.on('connection', (raw: GameSocket) => {
 
   socket.on('game:surrenderVote', (msg) => profile && room()?.surrenderVote(profile.id, !!msg?.agree));
 
+  socket.on('game:boom', (ack) => {
+    const r = room();
+    if (!r || !profile) return fail(ack, 'no_room');
+    const err = r.boom(profile.id);
+    if (err) return fail(ack, err);
+    ok(ack);
+  });
+
+  socket.on('game:swapOffer', (msg, ack) => {
+    const r = room();
+    if (!r || !profile) return fail(ack, 'no_room');
+    const err = r.offerSwap(profile.id, Number(msg?.to));
+    if (err) return fail(ack, err);
+    ok(ack);
+  });
+
+  socket.on('game:swapAnswer', (msg) => profile && room()?.answerSwap(profile.id, !!msg?.accept));
+
   // ——— Social ———
 
   socket.on('fx:emote', (msg) => profile && room()?.emote(profile.id, String(msg?.emote)));
   socket.on('fx:throw', (msg) => profile && room()?.throwItem(profile.id, String(msg?.to), String(msg?.item)));
   socket.on('chat', (msg) => profile && room()?.say(profile.id, String(msg?.text ?? '')));
+
+  socket.on('chat:gif', (msg, ack) => {
+    const r = room();
+    if (!r || !profile) return fail(ack, 'no_room');
+    const gif = vettedGif(msg?.id);
+    if (!gif) return fail(ack, 'gif_gone');
+    const err = r.sayGif(profile.id, gif);
+    if (err) return fail(ack, err);
+    ok(ack);
+  });
+
+  socket.on('gif:search', async (msg, ack) => {
+    if (typeof ack !== 'function') return;
+    if (!profile) return fail(ack, 'no_profile');
+    if (!gifsEnabled) return fail(ack, 'gifs_off');
+    try {
+      ok(ack, await searchGifs(String(msg?.q ?? ''), Number(msg?.offset ?? 0), lang));
+    } catch (err) {
+      console.error('GIF search failed:', err instanceof Error ? err.message : err);
+      fail(ack, 'gifs_down');
+    }
+  });
+
+  socket.on('leaderboard', (msg, ack) => {
+    if (typeof ack !== 'function') return;
+    if (!profile) return fail(ack, 'no_profile');
+    const period = msg?.period === 'week' ? 'week' : 'all';
+    const scope = msg?.scope === 'played' ? 'played' : 'global';
+    ok(ack, store.leaderboard(period, scope, profile));
+  });
 
   socket.on('voice:join', () => profile && room()?.voiceJoin(profile.id));
   socket.on('voice:leave', () => profile && room()?.voiceLeave(profile.id));

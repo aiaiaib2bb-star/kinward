@@ -1,16 +1,70 @@
 import { useState } from 'react';
-import { LIMITS, levelOf, xpForLevel } from '../../../shared/constants';
+import { ITEMS } from '../../../shared/catalog';
+import { LIMITS, levelOf, levelTitle, xpForLevel } from '../../../shared/constants';
 import { sfx } from '../../audio/sfx';
-import { fmt, useT } from '../../i18n';
+import { buzz } from '../../fx/haptics';
+import { fmt, useLang, useT } from '../../i18n';
 import { getToken, net } from '../../net/socket';
 import { go, toast, useApp } from '../../state/app';
 import { publicOf } from '../../state/selectors';
 import { Avatar } from '../components/Avatar';
+import { PlayingCard } from '../components/Card';
 import { CoinAmount, Dialog, TopNav } from '../components/common';
+import { ChevronIcon, HistoryIcon } from '../components/Icons';
+
+const ART_BACKS = ITEMS.filter((i) => i.kind === 'cardBack' && i.collection);
 import { copyText } from '../components/share';
+
+/** Your card backs, the new artwork collections first: tap one you own to use it. */
+function CardBacks() {
+  const t = useT();
+  const lang = useLang();
+  const profile = useApp((s) => s.profile)!;
+  const all = [...ART_BACKS, ...ITEMS.filter((i) => i.kind === 'cardBack' && !i.collection)];
+  // The ones you can switch to first, then the ones still to buy.
+  const backs = [...all.filter((b) => profile.owned.includes(b.id)), ...all.filter((b) => !profile.owned.includes(b.id))];
+  const owned = backs.filter((b) => profile.owned.includes(b.id)).length;
+  return (
+    <>
+      <div className="section-title">
+        {t('my_backs')} · {fmt(owned)}/{fmt(backs.length)}
+      </div>
+      <div className="backs-row">
+        {backs.map((b) => {
+          const has = profile.owned.includes(b.id);
+          const on = profile.equipped.cardBack === b.id;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              className={`back-pick${on ? ' on' : ''}${has ? '' : ' locked'}`}
+              onClick={async () => {
+                if (!has) {
+                  sfx.play('click');
+                  go('shop');
+                  return;
+                }
+                if (on) return;
+                if (await net.equip(b.id)) {
+                  sfx.play('chime');
+                  buzz('tap');
+                }
+              }}
+            >
+              <PlayingCard down back={b.id} face="face_classic" width={62} />
+              <span className="bp-name">{b.name[lang]}</span>
+              {on ? <span className="bp-state">✓</span> : !has && <span className="bp-state lock">🔒</span>}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
 
 export function Profile() {
   const t = useT();
+  const lang = useLang();
   const profile = useApp((s) => s.profile)!;
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile.name);
@@ -30,6 +84,8 @@ export function Profile() {
     [t('stat_hakemKots'), fmt(s.hakemKots)],
     [t('stat_hakem'), fmt(s.timesHakem)],
     [t('stat_slams'), fmt(s.slams)],
+    [t('stat_booms'), `${fmt(s.booms)}/${fmt(s.boomsCalled)}`],
+    [t('stat_swaps'), fmt(s.swaps)],
     [t('stat_coins'), fmt(s.coinsEarned)],
   ];
 
@@ -65,6 +121,7 @@ export function Profile() {
               ✏️
             </button>
           </div>
+          <div className="p-title">{levelTitle(level)[lang]}</div>
           <div className="muted">
             {t('level', { n: level })} · {t('xp_to_next', { n: span - into, l: level + 1 })}
           </div>
@@ -75,6 +132,17 @@ export function Profile() {
             <CoinAmount value={profile.coins} size={20} />
           </span>
         </div>
+
+        <button type="button" className="history-link" onClick={() => (sfx.play('click'), go('history'))}>
+          <HistoryIcon />
+          <span>
+            <b>{t('history_title')}</b>
+            <small>{t('history_link_sub', { n: profile.history.length })}</small>
+          </span>
+          <ChevronIcon />
+        </button>
+
+        <CardBacks />
 
         <div className="section-title">{t('stats')}</div>
         <div className="stats-grid">

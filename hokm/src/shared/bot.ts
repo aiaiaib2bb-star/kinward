@@ -35,6 +35,38 @@ export function botChooseTrump(firstFive: readonly Card[]): Suit {
   return best;
 }
 
+/**
+ * How good a hand looks before a card is played: trumps count for their
+ * length and honours, side suits for their aces and guarded kings.
+ */
+export function handStrength(hand: readonly Card[], trump: Suit | null): number {
+  let score = 0;
+  for (const card of hand) {
+    const rank = rankOf(card);
+    const suit = suitOf(card);
+    if (suit === trump) score += 1.5 + (HIGH_CARD_WEIGHT[rank] ?? 0);
+    else if (rank === 14) score += 3;
+    else if (rank === 13 && hand.filter((c) => suitOf(c) === suit).length >= 2) score += 1.5;
+    else if (rank === 12) score += 0.5;
+  }
+  return score;
+}
+
+/** About what a random hand of this size scores, by the measure above. */
+function typicalStrength(size: number): number {
+  return (11.5 * size) / 13;
+}
+
+/**
+ * A bot asked to trade hands blind: it can only judge its own cards. It
+ * takes the gamble when its hand is poor and usually turns down a good one.
+ */
+export function botAcceptsSwap(hand: readonly Card[], trump: Suit | null, rng: () => number): boolean {
+  const k = handStrength(hand, trump) / typicalStrength(hand.length || 1);
+  const chance = k < 0.7 ? 0.85 : k < 1 ? 0.4 : k < 1.3 ? 0.1 : 0.02;
+  return rng() < chance;
+}
+
 class Knowledge {
   readonly unseen: Set<Card>;
   /** voids[seat] holds the suits that seat has shown out of. */

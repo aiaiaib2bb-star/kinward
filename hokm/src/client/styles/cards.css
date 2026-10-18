@@ -266,6 +266,60 @@
   background-position: center;
 }
 
+/* Artwork backs fill the card edge to edge. */
+.card-back-face.art {
+  padding: 0;
+  background-color: #141414;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+/* Lava's cracks glow, slowly, as if still hot. */
+.card-back-face.art.back_lava::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255, 140, 20, 0.45), transparent 70%);
+  mix-blend-mode: screen;
+  animation: lava-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes lava-glow {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/* Galaxy's stars twinkle. */
+.card-back-face.art.back_galaxy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 30%, rgba(214, 180, 255, 0.35) 48%, transparent 66%) no-repeat;
+  background-size: 250% 100%;
+  animation: galaxy-sheen 5s linear infinite;
+}
+
+@keyframes galaxy-sheen {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.reduce-motion .card-back-face.art::after {
+  animation: none;
+}
+
 /* ——— Flipping ——— */
 
 .card.flip {

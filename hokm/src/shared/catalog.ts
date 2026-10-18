@@ -4,6 +4,8 @@
 
 export type ItemKind = 'avatar' | 'cardBack' | 'cardFace' | 'table' | 'frame' | 'aura' | 'slam' | 'throwable' | 'emotes';
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+/** Card backs drawn as artwork rather than patterns come in named collections. */
+export type Collection = 'celestial' | 'ornate';
 export type EquipSlot = 'avatar' | 'cardBack' | 'cardFace' | 'table' | 'frame' | 'aura' | 'slam';
 
 export interface Item {
@@ -15,6 +17,7 @@ export interface Item {
   /** An emoji for avatars and throwables, the emote list for emote packs. */
   glyph?: string;
   emotes?: string[];
+  collection?: Collection;
 }
 
 export const EQUIP_SLOTS: readonly EquipSlot[] = ['avatar', 'cardBack', 'cardFace', 'table', 'frame', 'aura', 'slam'];
@@ -27,6 +30,9 @@ const item = (id: string, kind: ItemKind, price: number, rarity: Rarity, en: str
   name: { en, fa },
   ...extra,
 });
+
+const artBack = (id: string, collection: Collection, price: number, rarity: Rarity, en: string, fa: string) =>
+  item(id, 'cardBack', price, rarity, en, fa, { collection });
 
 const avatar = (id: string, glyph: string, price: number, rarity: Rarity, en: string, fa: string) => item(id, 'avatar', price, rarity, en, fa, { glyph });
 
@@ -70,6 +76,26 @@ export const ITEMS: readonly Item[] = [
   item('back_marble', 'cardBack', 800, 'epic', 'Black Marble', 'مرمر سیاه'),
   item('back_sun', 'cardBack', 1200, 'legendary', 'Golden Sun', 'خورشید طلایی'),
   item('back_peacock', 'cardBack', 1500, 'legendary', 'Peacock Feather', 'پر طاووس'),
+
+  // The Celestial collection: fine gold line work on soft colours.
+  artBack('back_night_star', 'celestial', 450, 'rare', 'Night Star', 'ستاره شب'),
+  artBack('back_ivory_moon', 'celestial', 450, 'rare', 'Ivory Moon', 'ماه عاجی'),
+  artBack('back_garden', 'celestial', 450, 'rare', 'Garden', 'باغ'),
+  artBack('back_rose', 'celestial', 450, 'rare', 'Rose', 'گل سرخ'),
+  artBack('back_ruby', 'celestial', 500, 'rare', 'Ruby', 'یاقوت سرخ'),
+  artBack('back_amethyst', 'celestial', 600, 'epic', 'Amethyst', 'آمتیست'),
+  artBack('back_gold_marble', 'celestial', 650, 'epic', 'Gold Vein Marble', 'مرمر رگه‌طلا'),
+  artBack('back_sky_moon', 'celestial', 650, 'epic', 'Sky Moon', 'ماه آسمان'),
+
+  // The Ornate collection: rich, detailed, the ones people ask about.
+  artBack('back_verdant', 'ornate', 900, 'epic', 'Verdant', 'سبزینه'),
+  artBack('back_marble_deco', 'ornate', 900, 'epic', 'Marble Deco', 'مرمر دکو'),
+  artBack('back_dream_sky', 'ornate', 950, 'epic', 'Dream Sky', 'آسمان رؤیا'),
+  artBack('back_royal_crimson', 'ornate', 1100, 'legendary', 'Royal Crimson', 'سرخ شاهانه'),
+  artBack('back_sun_moon', 'ornate', 1100, 'legendary', 'Sun & Moon', 'خورشید و ماه'),
+  artBack('back_silver_spade', 'ornate', 1200, 'legendary', 'Silver Spade', 'پیک نقره‌ای'),
+  artBack('back_lava', 'ornate', 1400, 'legendary', 'Lava', 'گدازه'),
+  artBack('back_galaxy', 'ornate', 1400, 'legendary', 'Galaxy', 'کهکشان'),
 
   // Card faces — how cards look on your own screen.
   item('face_classic', 'cardFace', 0, 'common', 'Classic', 'کلاسیک'),

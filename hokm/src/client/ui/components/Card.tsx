@@ -117,6 +117,9 @@ export const CardFace = memo(function CardFace({ card, face, fourColor }: CardFa
 
 export const CardBack = memo(function CardBack({ back }: { back: string }) {
   const style = backStyle(back);
+  if (style.image) {
+    return <div className={`card-back-face art ${back}`} style={{ backgroundImage: `url(${style.image})` }} />;
+  }
   return (
     <div className="card-back-face">
       <div className="card-back-art" style={{ background: style.background, ['--frame' as string]: style.frame } as CSSProperties}>

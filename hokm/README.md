@@ -74,6 +74,8 @@ Put it behind anything that terminates HTTPS (Caddy, nginx, the host's own).
 | `DATA_DIR` | Where profiles are stored (`profiles.json`). Default `./data`. |
 | `ICE_SERVERS` | Extra STUN/TURN servers for voice, as JSON, e.g. `[{"urls":"turn:turn.example.com:3478","username":"u","credential":"p"}]`. |
 | `CF_TURN_KEY_ID`, `CF_TURN_API_TOKEN` | Use Cloudflare Realtime TURN instead; the server fetches short-lived credentials itself. |
+| `GIPHY_API_KEY` | Turns on GIF search in chat (get a free key at developers.giphy.com). Without it the GIF buttons are hidden. |
+| `GIPHY_RATING` | The strictest GIPHY content rating to allow: `g`, `pg`, `pg-13` (default) or `r`. |
 | `HOKM_TIME_SCALE` | Speeds every server timer up (`0.2`) — for testing only. |
 
 ### Voice chat and mobile data
@@ -125,11 +127,33 @@ slipper.
 **Surrender.** Either partner can propose it from the menu; the other partner
 gets a yes/no. Both agree and the team loses that game.
 
+**Boom 💣.** Before the first trick of a hand is taken, any player can call
+Boom from the moves button in their bar. Their team must then take all 13
+tricks: if they do, they win the whole game on the spot (plus 150 coins); if
+they lose a single trick, the hand ends there and the other team wins it.
+One Boom per hand.
+
+**Swap hands 🔄.** Between tricks, a player can offer to trade their whole
+hand, sight unseen, with one of the two opponents. The opponent gets 12
+seconds to accept or decline while the table's clock waits. One offer per
+player per hand. Bots judge only their own cards. The host can switch Booms
+and swaps off in the lobby.
+
+**GIFs.** The chat and the emote sheet have a GIF tab that searches GIPHY
+(trending when the box is empty). The server does the searching, so the key
+stays private, and only GIFs from its own rating-filtered results can be sent.
+
+**Past games and the leaderboard.** Every finished game is saved to your
+profile (the last 30): result, score, partner, opponents, Kots and Booms. The
+leaderboard ranks players by games won, all time or this week, either
+everyone or just the people you've played with.
+
 **Coins and the shop.** Winners earn 100 coins plus 15 for each Kot and 30 for
 each Hakem Kot; the other team still gets 20, a surrendering team nothing.
 Rewards shrink when bots fill seats, so practising alone isn't a coin farm.
 There's a daily gift, XP and levels (each level pays out too). Coins buy card
-backs (Kashi tile, Termeh paisley, Yalda pomegranate, peacock feather…), card
+backs (Kashi tile, Termeh paisley, Yalda pomegranate, peacock feather…, plus
+the painted Celestial and Ornate collections in `public/backs/`), card
 faces (including Farsi numerals), tables (Persian carpet, Isfahan tiles…),
 avatars, frames, profile effects that surround your avatar, slam effects,
 throwables and emote packs. Everyone at the table sees your card backs, frame

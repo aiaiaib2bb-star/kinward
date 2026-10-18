@@ -3,7 +3,7 @@ import { type Card, sortHand, suitOf } from '../../../shared/cards';
 import type { MemberView, RoomView } from '../../../shared/protocol';
 import { ledSuit, teamOf } from '../../../shared/rules';
 import { sfx } from '../../audio/sfx';
-import { tableStyle } from '../../cosmetics/patterns';
+import { preloadBack, tableStyle } from '../../cosmetics/patterns';
 import { emitFx } from '../../fx/bus';
 import { buzz } from '../../fx/haptics';
 import { displayName, useLang, useT } from '../../i18n';
@@ -21,7 +21,7 @@ import { useGeometry } from './geometry';
 import { Hand, type PlayOrigin } from './Hand';
 import { HandResult, MatchResult } from './Results';
 import { Seat, TopBar, actorOf, timerFor } from './Seats';
-import { AwayBanner, EmoteSheet, GameMenu, LastTrickSheet, PlayerSheet, SurrenderPrompt } from './Sheets';
+import { AwayBanner, EmoteSheet, GameMenu, LastTrickSheet, MovesSheet, PlayerSheet, SurrenderPrompt, SwapPrompt, boomStatus, swapStatus } from './Sheets';
 import { DealLayer, DeckStage, HakemSelect, TrumpAnnounce, TrumpPicker, TrumpWaiting, useDealCounts } from './Stages';
 import { TrickLayer } from './Trick';
 
@@ -73,11 +73,16 @@ export function Game({ room }: { room: RoomView }) {
   const [chat, setChat] = useState(false);
   const [emotes, setEmotes] = useState(false);
   const [lastTrick, setLastTrick] = useState(false);
+  const [moves, setMoves] = useState(false);
   const [target, setTarget] = useState<MemberView | null>(null);
   const [pending, setPending] = useState<{ card: Card; power: number } | null>(null);
   const origins = useRef(new Map<Card, PlayOrigin>());
 
   useWakeLock(true);
+  // Artwork card backs are pictures: fetch everyone's before the deal needs them.
+  useEffect(() => {
+    for (const m of room.members) preloadBack(m.profile.equipped.cardBack);
+  }, [room.members]);
   // Where your cards left the hand only matters until they land; start each hand fresh.
   useEffect(() => origins.current.clear(), [game.handNumber]);
   const dealCounts = useDealCounts(game);
@@ -184,6 +189,8 @@ export function Game({ room }: { room: RoomView }) {
   const away = mySeat !== null && game.away.includes(mySeat);
   const inVoice = room.members.filter((m) => m.inVoice).length;
   const handEnabled = mySeat !== null && !dealCounts;
+  const canBoom = boomStatus(room, game, mySeat) === 'ok';
+  const canSwap = swapStatus(room, game, mySeat) === 'ok';
 
   return (
     <div className="game" style={{ background: tableBg.background, ['--tint' as string]: tableBg.tint } as CSSProperties}>
@@ -239,7 +246,7 @@ export function Game({ room }: { room: RoomView }) {
                   <div className="mybar-me" data-member={me.id}>
                     <Avatar
                       profile={me.profile}
-                      size={44}
+                      size={54}
                       timer={timerFor(game, mySeat!)}
                       hakem={game.hakem === mySeat}
                       speaking={speakingMe}
@@ -254,11 +261,21 @@ export function Game({ room }: { room: RoomView }) {
                     ) : null}
                   </div>
                   <div className="mybar-actions">
+                    {(room.settings.booms || room.settings.swaps) && (
+                      <button
+                        type="button"
+                        className={`round-btn moves-btn${canBoom ? ' boom-ready' : canSwap ? ' ready' : ''}`}
+                        onClick={() => setMoves(true)}
+                        aria-label={t('moves')}
+                      >
+                        {canBoom ? '💣' : '🔄'}
+                      </button>
+                    )}
                     <button type="button" className="round-btn" onClick={() => setEmotes(true)} aria-label={t('emotes')}>
                       😊
                     </button>
                     <ChatButton room={room} onOpen={() => setChat(true)} />
-                    <VoiceButton size={44} inVoiceCount={inVoice} />
+                    <VoiceButton size={geo.w < 400 ? 40 : 44} inVoiceCount={inVoice} />
                   </div>
                 </div>
               )}
@@ -297,6 +314,7 @@ export function Game({ room }: { room: RoomView }) {
 
             {away && <AwayBanner onBack={() => net.back()} />}
             <SurrenderPrompt game={game} mySeat={mySeat} />
+            <SwapPrompt room={room} game={game} mySeat={mySeat} />
             {game.phase === 'handEnd' && game.handResult && <HandResult game={game} room={room} viewSeat={viewSeat} spectating={spectating} />}
             {game.phase === 'matchEnd' && <MatchResult game={game} room={room} viewSeat={viewSeat} spectating={spectating} />}
           </>
@@ -314,6 +332,7 @@ export function Game({ room }: { room: RoomView }) {
       <GameMenu open={menu} onClose={() => setMenu(false)} onLastTrick={() => setLastTrick(true)} seated={mySeat !== null} />
       <LastTrickSheet open={lastTrick} onClose={() => setLastTrick(false)} game={game} room={room} rel={rel} />
       <EmoteSheet open={emotes} onClose={() => setEmotes(false)} />
+      <MovesSheet open={moves} onClose={() => setMoves(false)} room={room} game={game} mySeat={mySeat} />
       <ChatSheet room={room} open={chat} onClose={() => setChat(false)} />
       <PlayerSheet member={target} room={room} onClose={() => setTarget(null)} />
     </div>

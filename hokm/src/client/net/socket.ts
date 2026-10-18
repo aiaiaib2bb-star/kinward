@@ -1,6 +1,6 @@
 import { type Socket, io } from 'socket.io-client';
 import type { Card, Suit } from '../../shared/cards';
-import type { ClientToServer, FxEvent, RoomSettings, ServerToClient, Welcome } from '../../shared/protocol';
+import type { ClientToServer, FxEvent, Gif, LeaderboardView, RoomSettings, ServerToClient, Welcome } from '../../shared/protocol';
 import { emitFx } from '../fx/bus';
 import { isStringKey, t } from '../i18n';
 import { app, toast } from '../state/app';
@@ -75,7 +75,7 @@ async function hello(draft?: { name: string; avatar: string }) {
   const w = res.data!;
   setToken(w.token);
   syncClock(w.serverNow);
-  app.set({ profile: w.profile, iceServers: w.iceServers, needsProfile: false, ready: true, elsewhere: false });
+  app.set({ profile: w.profile, iceServers: w.iceServers, needsProfile: false, ready: true, elsewhere: false, features: w.features ?? { gifs: false } });
   const pending = app.get().pendingJoin;
   if (pending) {
     app.set({ pendingJoin: null });
@@ -188,10 +188,17 @@ export const net = {
   back: () => socket.emit('game:back'),
   surrender: () => socket.emit('game:surrender'),
   surrenderVote: (agree: boolean) => socket.emit('game:surrenderVote', { agree }),
+  boom: () => act('game:boom'),
+  offerSwap: (to: number) => act('game:swapOffer', { to }),
+  answerSwap: (accept: boolean) => socket.emit('game:swapAnswer', { accept }),
 
   emote: (emote: string) => socket.emit('fx:emote', { emote }),
   throwItem: (to: string, item: string) => socket.emit('fx:throw', { to, item }),
   chat: (text: string) => socket.emit('chat', { text }),
+  sendGif: (id: string) => act('chat:gif', { id }),
+  /** Quiet on failure: the picker shows its own message. */
+  searchGifs: (q: string, offset = 0) => request<Gif[]>('gif:search', { q, offset }),
+  leaderboard: (period: LeaderboardView['period'], scope: LeaderboardView['scope']) => request<LeaderboardView>('leaderboard', { period, scope }),
 
   voiceJoin: () => socket.emit('voice:join'),
   voiceLeave: () => socket.emit('voice:leave'),

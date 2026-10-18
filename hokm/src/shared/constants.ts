@@ -27,6 +27,8 @@ export const T = {
   offlineGrace: 8_000,
   surrenderVote: 20_000,
   surrenderCooldown: 30_000,
+  /** How long an opponent has to answer a hand-swap offer. The table waits meanwhile. */
+  swapOffer: 12_000,
   rematchWindow: 90_000,
 } as const;
 
@@ -45,6 +47,8 @@ export const ECONOMY = {
   lossCoins: 20,
   kotBonus: 15,
   hakemKotBonus: 30,
+  /** On top of the win, for the team that pulled off a Boom. */
+  boomBonus: 150,
   winXp: 60,
   lossXp: 25,
   handWonXp: 5,
@@ -75,7 +79,35 @@ export const LIMITS = {
   chatLength: 140,
   roomMembers: 10,
   chatHistory: 40,
+  /** Past games kept in a profile. */
+  history: 30,
+  leaderboard: 50,
+  gifQuery: 50,
 } as const;
+
+/** Weeks since Monday 5 January 1970, in UTC: the weekly leaderboard resets every Monday. */
+export function weekKey(now = Date.now()): number {
+  return Math.floor((Math.floor(now / 86_400_000) - 4) / 7);
+}
+
+/** A title for each stretch of levels, shown under names on the leaderboard. */
+export const LEVEL_TITLES: readonly { from: number; en: string; fa: string }[] = [
+  { from: 1, en: 'Newcomer', fa: 'تازه‌کار' },
+  { from: 3, en: 'Beginner', fa: 'نوآموز' },
+  { from: 5, en: 'Intermediate', fa: 'متوسط' },
+  { from: 8, en: 'Skilled', fa: 'ماهر' },
+  { from: 12, en: 'Expert', fa: 'کاربلد' },
+  { from: 16, en: 'Tough Rival', fa: 'حریف قدر' },
+  { from: 20, en: 'Master', fa: 'استاد' },
+  { from: 25, en: 'Grand Master', fa: 'استاد بزرگ' },
+  { from: 30, en: 'Sultan of Hokm', fa: 'سلطان حکم' },
+];
+
+export function levelTitle(level: number): { en: string; fa: string } {
+  let title = LEVEL_TITLES[0];
+  for (const t of LEVEL_TITLES) if (level >= t.from) title = t;
+  return title;
+}
 
 /** Release speeds (px/ms) at which a thrown card becomes a slam, and at which the slam is at full power. */
 export const SLAM = {

@@ -1,6 +1,6 @@
 // Keeps the app shell and its hashed assets on the phone so the game opens
 // instantly. The game itself always needs the server, so nothing else is cached.
-const CACHE = 'hokm-v1';
+const CACHE = 'hokm-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -18,7 +18,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/socket.io')) return;
 
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/backs/')) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
         const hit = await cache.match(req);

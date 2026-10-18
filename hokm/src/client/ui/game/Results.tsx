@@ -80,7 +80,10 @@ export function HandResult({ game, room, viewSeat, spectating }: { game: GameVie
   const left = Math.max(0, T.handEnd - (Date.now() - toLocal(game.phaseStartedAt)));
 
   useEffect(() => {
-    if (r.kot) {
+    if (r.boom) {
+      sfx.play(r.boom.won ? 'boom' : 'lose');
+      if (r.boom.won) buzz('boom');
+    } else if (r.kot) {
       sfx.play('kot');
       buzz('win');
     } else if (won || spectating) sfx.play('trickWin');
@@ -92,8 +95,17 @@ export function HandResult({ game, room, viewSeat, spectating }: { game: GameVie
   return (
     <div className="result-overlay">
       <div className={`result-card ${won ? 'won' : 'lost'}`}>
-        {r.kot && <div className={`kot-stamp${r.hakemKot ? ' hakem' : ''}`}>{r.hakemKot ? t('hakem_kot') : t('kot')}</div>}
+        {r.boom ? (
+          <div className={`kot-stamp boom${r.boom.won ? '' : ' failed'}`}>{r.boom.won ? t('boom_stamp') : t('boom_failed_stamp')}</div>
+        ) : (
+          r.kot && <div className={`kot-stamp${r.hakemKot ? ' hakem' : ''}`}>{r.hakemKot ? t('hakem_kot') : t('kot')}</div>
+        )}
         <h2>{title}</h2>
+        {r.boom && (
+          <div className="muted boom-line">
+            {t(r.boom.won ? 'boom_made' : 'boom_missed', { name: displayName(seatMember(room, r.boom.by)?.profile, lang) })}
+          </div>
+        )}
         <div className="trick-score ltr">
           <span className="us">{fmt(r.tricks[mine])}</span>
           <span className="dash">–</span>
@@ -142,7 +154,16 @@ export function MatchResult({ game, room, viewSeat, spectating }: { game: GameVi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const subtitle = res?.reason === 'surrender' ? (winnerTeam === mine && !spectating ? t('surrendered_them') : spectating ? '' : t('surrendered_us')) : '';
+  const subtitle =
+    res?.reason === 'surrender'
+      ? winnerTeam === mine && !spectating
+        ? t('surrendered_them')
+        : spectating
+          ? ''
+          : t('surrendered_us')
+      : res?.reason === 'boom'
+        ? `💣 ${t('boom_won_game')}`
+        : '';
   return (
     <div className="result-overlay match">
       {(won || spectating) && <Confetti />}

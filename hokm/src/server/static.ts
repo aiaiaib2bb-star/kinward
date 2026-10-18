@@ -12,6 +12,7 @@ const TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
@@ -84,7 +85,11 @@ export function serveStatic(root: string, req: http.IncomingMessage, res: http.S
   const ext = path.extname(file);
   const headers: Record<string, string> = {
     'Content-Type': TYPES[ext] ?? 'application/octet-stream',
-    'Cache-Control': pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'Cache-Control': pathname.startsWith('/assets/')
+      ? 'public, max-age=31536000, immutable'
+      : pathname.startsWith('/backs/')
+        ? 'public, max-age=604800'
+        : 'no-cache',
     'X-Content-Type-Options': 'nosniff',
     Vary: 'Accept-Encoding',
   };

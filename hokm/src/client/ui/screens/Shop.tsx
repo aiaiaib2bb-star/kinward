@@ -1,5 +1,5 @@
 import { type CSSProperties, useState } from 'react';
-import { ITEMS, type Item, type ItemKind, KIND_SLOT } from '../../../shared/catalog';
+import { type Collection, ITEMS, type Item, type ItemKind, KIND_SLOT } from '../../../shared/catalog';
 import { SLAM_SOUND, THROW_SOUND, sfx } from '../../audio/sfx';
 import { tableStyle } from '../../cosmetics/patterns';
 import { buzz } from '../../fx/haptics';
@@ -19,6 +19,29 @@ const TABS: { id: string; label: StringKey; kinds: ItemKind[] }[] = [
   { id: 'look', label: 'tab_look', kinds: ['avatar', 'frame', 'aura'] },
   { id: 'fun', label: 'tab_fun', kinds: ['slam', 'throwable', 'emotes'] },
 ];
+
+interface Section {
+  kind: ItemKind;
+  /** Card backs come in collections; `null` is the rest of that kind. */
+  collection?: Collection | null;
+}
+
+function sectionsOf(kinds: ItemKind[]): Section[] {
+  return kinds.flatMap((kind): Section[] =>
+    kind === 'cardBack'
+      ? [
+          { kind, collection: 'ornate' },
+          { kind, collection: 'celestial' },
+          { kind, collection: null },
+        ]
+      : [{ kind }],
+  );
+}
+
+function sectionTitle(sec: Section): StringKey {
+  if (sec.collection) return `collection_${sec.collection}` as StringKey;
+  return `cat_${sec.kind}` as StringKey;
+}
 
 export const SLAM_ICON: Record<string, string> = {
   slam_thud: '💥',
@@ -129,11 +152,15 @@ export function Shop() {
             </button>
           ))}
         </div>
-        {current.kinds.map((kind) => (
-          <section key={kind}>
-            <div className="section-title">{t(`cat_${kind}` as StringKey)}</div>
+        {sectionsOf(current.kinds).map((sec) => (
+          <section key={`${sec.kind}-${sec.collection ?? ''}`}>
+            <div className={`section-title${sec.collection ? ' collection-title' : ''}`}>
+              {sec.collection && '✨ '}
+              {t(sectionTitle(sec))}
+              {sec.collection && <span className="new-chip">{t('new_badge')}</span>}
+            </div>
             <div className="shop-grid">
-              {ITEMS.filter((i) => i.kind === kind)
+              {ITEMS.filter((i) => i.kind === sec.kind && (sec.collection === undefined || (i.collection ?? null) === sec.collection))
                 // What you can buy comes first; what you already have follows.
                 .sort((a, b) => Number(profile.owned.includes(a.id)) - Number(profile.owned.includes(b.id)) || a.price - b.price)
                 .map((it) => {

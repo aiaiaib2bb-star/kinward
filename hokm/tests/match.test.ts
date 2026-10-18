@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { type Control, Match, type MatchEnd } from '../src/server/match';
+import { type Suit, makeCard } from '../src/shared/cards';
 import type { RoomSettings } from '../src/shared/protocol';
+import { legalPlays } from '../src/shared/rules';
 import { seededRng } from '../src/shared/shuffle';
 
-const settings: RoomSettings = { targetScore: 7, turnTime: 30, shuffleMode: 'real' };
+const settings: RoomSettings = { targetScore: 7, turnTime: 30, shuffleMode: 'real', swaps: true, booms: true };
 
 function harness(controls: Control[], opts: Partial<RoomSettings> = {}, seed = 1) {
-  const events = { slams: 0, toasts: [] as string[], changes: 0 };
+  const events = { slams: 0, toasts: [] as string[], changes: 0, booms: [] as number[], swaps: [] as [number, number, boolean][] };
   let ended: MatchEnd | null = null;
   const match = new Match(
     { ...settings, ...opts },
@@ -16,6 +18,8 @@ function harness(controls: Control[], opts: Partial<RoomSettings> = {}, seed = 1
       slam: () => events.slams++,
       emote: () => {},
       toast: (key) => events.toasts.push(key),
+      boom: (seat) => events.booms.push(seat),
+      swapped: (from, to, accepted) => events.swaps.push([from, to, accepted]),
       ended: (end) => (ended = end),
     },
     seededRng(seed),
@@ -153,4 +157,116 @@ describe('match flow', () => {
     expect(new Set(all).size).toBe(52);
     h.match.dispose();
   }, 30000);
+});
+
+const suit = (s: Suit) => [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((r) => makeCard(s, r));
+
+/**
+ * Brings four idle humans to the first lead with no turn clock, then deals
+ * a rigged hand: seat 0 holds every spade (trump), so team 0 takes every trick.
+ */
+async function riggedPlay(opts: Partial<RoomSettings> = {}) {
+  const h = harness(['human', 'human', 'human', 'human'], { turnTime: 0, ...opts });
+  h.match.start();
+  await h.until(() => h.match.phase === 'play');
+  h.match.trump = 'S';
+  h.match.hands = [suit('S'), suit('D'), suit('H'), suit('C')];
+  /** Plays the first legal card for whoever's turn it is, until `stop` says so. */
+  const playOut = async (stop: () => boolean) => {
+    while (!stop()) {
+      if (h.match.phase === 'play' && h.match.turn !== null) {
+        const seat = h.match.turn;
+        expect(h.match.play(seat, legalPlays(h.match.hands[seat], h.match.trick)[0], 0)).toBeNull();
+      } else await new Promise((r) => setTimeout(r, 2));
+    }
+  };
+  return { ...h, playOut };
+}
+
+describe('boom', () => {
+  it('wins the whole game when the caller takes all thirteen tricks', async () => {
+    const h = await riggedPlay();
+    expect(h.match.callBoom(2)).toBeNull();
+    expect(h.match.viewFor(1).boom).toEqual({ team: 0, by: 2 });
+    expect(h.events.booms).toEqual([2]);
+    expect(h.match.callBoom(0)).toBe('boom_taken');
+    // Past seven tricks the hand keeps going.
+    await h.playOut(() => h.match.phase === 'handEnd');
+    expect(h.match.tricksWon).toEqual([13, 0]);
+    expect(h.match.handResult?.boom).toEqual({ team: 0, by: 2, won: true });
+    expect(h.match.scores[0]).toBe(7);
+    await h.until(() => !!h.ended());
+    expect(h.ended()).toMatchObject({ winnerTeam: 0, reason: 'boom' });
+    expect(h.ended()!.stats.booms).toEqual([1, 0]);
+  });
+
+  it('loses the hand at the first trick the callers drop', async () => {
+    const h = await riggedPlay();
+    expect(h.match.callBoom(1)).toBeNull();
+    await h.playOut(() => h.match.phase === 'handEnd');
+    expect(h.match.tricksWon).toEqual([1, 0]);
+    expect(h.match.handResult).toMatchObject({ winnerTeam: 0, points: 1, boom: { team: 1, by: 1, won: false } });
+    expect(h.match.scores).toEqual([1, 0]);
+    expect(h.ended()).toBeNull();
+    h.match.dispose();
+  });
+
+  it('can only be called before the first trick is taken, and only where the table allows it', async () => {
+    const h = await riggedPlay();
+    await h.playOut(() => h.match.tricksWon[0] === 1 && h.match.phase === 'play');
+    expect(h.match.callBoom(0)).toBe('boom_late');
+    h.match.dispose();
+    const off = await riggedPlay({ booms: false });
+    expect(off.match.callBoom(0)).toBe('boom_off');
+    off.match.dispose();
+  });
+});
+
+describe('hand swaps', () => {
+  it('trades hands when the opponent accepts, holding the clock meanwhile', async () => {
+    const h = await riggedPlay();
+    const turn = h.match.turn!;
+    const mine = h.match.hands[0].slice();
+    const theirs = h.match.hands[1].slice();
+    expect(h.match.offerSwap(0, 2)).toBe('swap_target'); // your partner isn't an opponent
+    expect(h.match.offerSwap(0, 1)).toBeNull();
+    expect(h.match.viewFor(1).swapOffer).toMatchObject({ from: 0, to: 1 });
+    expect(h.match.viewFor(1).deadline).toBeNull();
+    expect(h.match.offerSwap(2, 3)).toBe('swap_pending');
+    expect(h.match.play(turn, legalPlays(h.match.hands[turn], [])[0], 0)).toBe('swap_pending');
+    h.match.answerSwap(3, true); // only the one asked can answer
+    expect(h.match.swapOffer).not.toBeNull();
+    h.match.answerSwap(1, true);
+    expect(h.match.swapOffer).toBeNull();
+    expect(h.match.hands[0]).toEqual(theirs);
+    expect(h.match.hands[1]).toEqual(mine);
+    expect(h.events.swaps).toEqual([[0, 1, true]]);
+    expect(h.match.offerSwap(0, 3)).toBe('swap_used');
+    h.match.dispose();
+  });
+
+  it('treats no answer as a no, and is refused mid-trick', async () => {
+    const h = await riggedPlay();
+    const before = h.match.hands.map((x) => x.slice());
+    expect(h.match.offerSwap(1, 2)).toBeNull();
+    await h.until(() => h.match.swapOffer === null);
+    expect(h.events.swaps).toEqual([[1, 2, false]]);
+    expect(h.match.hands).toEqual(before);
+    const turn = h.match.turn!;
+    h.match.play(turn, legalPlays(h.match.hands[turn], [])[0], 0);
+    const other = (turn + 1) % 4;
+    expect(h.match.offerSwap(other, (other + 1) % 4)).toBe('swap_between');
+    h.match.dispose();
+  });
+
+  it('lets a bot answer on its own', async () => {
+    const h = harness(['human', 'bot', 'bot', 'bot'], { turnTime: 0 }, 4);
+    h.match.start();
+    await h.until(() => h.match.phase === 'play' && h.match.trick.length === 0 && h.match.turn !== 0);
+    // Wait for a moment between tricks to offer.
+    await h.until(() => h.match.offerSwap(0, 1) === null || h.match.swapsUsed.has(0));
+    await h.until(() => h.events.swaps.length === 1);
+    expect(h.events.swaps[0].slice(0, 2)).toEqual([0, 1]);
+    h.match.dispose();
+  });
 });

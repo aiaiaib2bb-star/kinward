@@ -7,6 +7,8 @@ const svg = (body: string, w: number, h: number) =>
 export interface BackStyle {
   /** CSS background for the patterned area inside the white border. */
   background: string;
+  /** Artwork backs are a picture that fills the whole card, border and all. */
+  image?: string;
   /** An optional emblem drawn over the centre. */
   emblem?: string;
   /** Colour of the thin frame line just inside the white border. */
@@ -106,8 +108,42 @@ export const CARD_BACKS: Record<string, BackStyle> = {
   back_peacock: { background: `${peacockEyes}, linear-gradient(160deg, #075f66, #04313a)`, frame: '#e7c45e' },
 };
 
+// The artwork collections: one picture per back, in public/backs.
+for (const name of [
+  'night-star',
+  'ivory-moon',
+  'garden',
+  'rose',
+  'ruby',
+  'amethyst',
+  'gold-marble',
+  'sky-moon',
+  'verdant',
+  'marble-deco',
+  'dream-sky',
+  'royal-crimson',
+  'sun-moon',
+  'silver-spade',
+  'lava',
+  'galaxy',
+]) {
+  CARD_BACKS[`back_${name.replace(/-/g, '_')}`] = { background: '#141414', frame: 'transparent', image: `/backs/${name}.webp` };
+}
+
 export function backStyle(id: string | undefined): BackStyle {
   return CARD_BACKS[id ?? ''] ?? CARD_BACKS.back_crimson;
+}
+
+const preloaded = new Set<string>();
+
+/** Fetches an artwork back ahead of time, so cards don't appear blank the first time they're dealt. */
+export function preloadBack(id: string | undefined) {
+  const url = backStyle(id).image;
+  if (!url || preloaded.has(url)) return;
+  preloaded.add(url);
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = url;
 }
 
 const grain = svg(

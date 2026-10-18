@@ -1,19 +1,22 @@
 import type { Socket } from 'socket.io';
 import { DEFAULT_EQUIPPED, ITEMS, emotesOwned, getItem } from '../shared/catalog';
-import { ECONOMY, LIMITS, TARGET_SCORES, TURN_TIMES, humanRewardFactor, levelOf } from '../shared/constants';
+import { ECONOMY, LIMITS, TARGET_SCORES, TURN_TIMES, humanRewardFactor, levelOf, weekKey } from '../shared/constants';
 import type {
   ChatMessage,
   ClientToServer,
   FxEvent,
+  GameRecord,
+  Gif,
   MatchResultView,
   MemberView,
   Profile,
   PublicProfile,
+  RecordPlayer,
   RoomSettings,
   RoomView,
   ServerToClient,
 } from '../shared/protocol';
-import { teamOf } from '../shared/rules';
+import { partnerOf, teamOf } from '../shared/rules';
 import type { Rng } from '../shared/shuffle';
 import { type Control, Match, type MatchEnd } from './match';
 import { type ProfileStore, publicProfile } from './profiles';
@@ -45,7 +48,7 @@ interface Member {
 // Bots are named for heroes of the Shahnameh. The client translates the key.
 const BOT_NAMES = ['rostam', 'sohrab', 'gordafarid', 'tahmineh', 'kaveh', 'shirin', 'farhad', 'manijeh', 'bijan', 'rudabeh', 'zal', 'siavash'];
 
-const DEFAULT_SETTINGS: RoomSettings = { targetScore: 7, turnTime: 30, shuffleMode: 'real' };
+const DEFAULT_SETTINGS: RoomSettings = { targetScore: 7, turnTime: 30, shuffleMode: 'real', swaps: true, booms: true };
 
 export class Room {
   readonly members = new Map<string, Member>();
@@ -276,6 +279,8 @@ export class Room {
     if (TARGET_SCORES.includes(patch.targetScore as never)) this.settings.targetScore = patch.targetScore!;
     if (TURN_TIMES.includes(patch.turnTime as never)) this.settings.turnTime = patch.turnTime!;
     if (patch.shuffleMode === 'real' || patch.shuffleMode === 'random') this.settings.shuffleMode = patch.shuffleMode;
+    if (typeof patch.swaps === 'boolean') this.settings.swaps = patch.swaps;
+    if (typeof patch.booms === 'boolean') this.settings.booms = patch.booms;
     this.touch();
   }
 
@@ -323,6 +328,8 @@ export class Room {
           if (m && this.match === match) this.fx({ type: 'emote', from: m.id, emote });
         },
         toast: (key, params) => this.fx({ type: 'toast', key, params }),
+        boom: (seat) => this.fx({ type: 'boom', seat }),
+        swapped: (from, to, accepted) => this.fx({ type: 'swap', from, to, accepted }),
         ended: (end) => this.settle(match, end),
       },
       this.deps.rng,
@@ -347,6 +354,8 @@ export class Room {
       .filter((x): x is { m: Member; seat: number } => !!x.m?.profile);
     const factor = humanRewardFactor(seated.length);
     const rewards: MatchResultView['rewards'] = {};
+    const now = Date.now();
+    const week = weekKey(now);
     for (const { m, seat } of seated) {
       const p = m.profile!;
       const team = teamOf(seat);
@@ -354,6 +363,7 @@ export class Room {
       const surrendered = end.surrenderTeam === team;
       let coins = won ? ECONOMY.winCoins : surrendered ? 0 : ECONOMY.lossCoins;
       coins += end.stats.kots[team] * ECONOMY.kotBonus + end.stats.hakemKots[team] * ECONOMY.hakemKotBonus;
+      coins += end.stats.booms[team] * ECONOMY.boomBonus;
       coins = Math.round(coins * factor);
       const xp = Math.round(((won ? ECONOMY.winXp : ECONOMY.lossXp) + end.stats.handsWon[team] * ECONOMY.handWonXp) * factor);
       const before = levelOf(p.xp);
@@ -379,6 +389,14 @@ export class Room {
       s.timesHakem += end.stats.timesHakem[seat];
       s.slams += end.stats.slams[seat];
       s.coinsEarned += coins;
+      s.boomsCalled += end.stats.boomsCalled[team];
+      s.booms += end.stats.booms[team];
+      s.swaps += end.stats.swaps[seat];
+      if (p.week.key !== week) p.week = { key: week, played: 0, won: 0 };
+      p.week.played += 1;
+      if (won) p.week.won += 1;
+      p.history.unshift(this.record(match, end, seat, won, coins, now));
+      if (p.history.length > LIMITS.history) p.history.length = LIMITS.history;
       this.deps.store.save(p);
       this.deps.sendProfile(p);
       rewards[m.id] = { coins, xp, levelUp: after > before ? after : undefined };
@@ -390,6 +408,32 @@ export class Room {
     this.clearLobbyTimer();
     this.lobbyTimer = setTimeout(() => this.toLobby(), 90_000);
     this.checkRematch();
+  }
+
+  /** How a finished game is remembered in one player's history. */
+  private record(match: Match, end: MatchEnd, seat: number, won: boolean, coins: number, at: number): GameRecord {
+    const team = teamOf(seat);
+    const who = (s: number): RecordPlayer | null => {
+      const m = this.seatMember(s);
+      if (!m) return null;
+      if (m.bot) return { name: m.bot.name, bot: true };
+      return { id: m.id, name: m.profile?.name ?? '' };
+    };
+    const boomsUs = end.stats.booms[team];
+    const boomsThem = end.stats.booms[1 - team];
+    return {
+      at,
+      won,
+      reason: end.reason,
+      score: [match.scores[team], match.scores[1 - team]],
+      target: this.settings.targetScore,
+      hands: end.stats.hands,
+      kots: end.stats.kots[team] + end.stats.hakemKots[team],
+      boom: boomsUs ? 'won' : boomsThem ? 'lost' : undefined,
+      coins,
+      partner: who(partnerOf(seat)),
+      opponents: [who((seat + 1) % 4), who((seat + 3) % 4)].filter((x): x is RecordPlayer => !!x),
+    };
   }
 
   private dropMember(m: Member) {
@@ -492,6 +536,23 @@ export class Room {
     if (seat !== null) this.match!.voteSurrender(seat, agree);
   }
 
+  boom(id: string): string | null {
+    const seat = this.seatFor(id);
+    if (seat === null) return 'not_seated';
+    return this.match!.callBoom(seat);
+  }
+
+  offerSwap(id: string, to: number): string | null {
+    const seat = this.seatFor(id);
+    if (seat === null) return 'not_seated';
+    return this.match!.offerSwap(seat, to);
+  }
+
+  answerSwap(id: string, accept: boolean) {
+    const seat = this.seatFor(id);
+    if (seat !== null) this.match!.answerSwap(seat, accept);
+  }
+
   // ——— Social ———
 
   /** At most 4 effects in any 5 seconds per player. */
@@ -530,7 +591,21 @@ export class Room {
     const now = Date.now();
     if (now - m.lastChatAt < 600) return;
     m.lastChatAt = now;
-    const message: ChatMessage = { id: ++this.chatSeq, from: id, text: clean, at: now };
+    this.post({ id: ++this.chatSeq, from: id, text: clean, at: now });
+  }
+
+  /** A GIF the server has vetted (it came back from our own GIPHY search). */
+  sayGif(id: string, gif: Gif): string | null {
+    const m = this.members.get(id);
+    if (!m?.profile) return 'no_room';
+    const now = Date.now();
+    if (now - m.lastChatAt < 1200) return 'slow_down';
+    m.lastChatAt = now;
+    this.post({ id: ++this.chatSeq, from: id, text: '', gif, at: now });
+    return null;
+  }
+
+  private post(message: ChatMessage) {
     this.chat.push(message);
     if (this.chat.length > LIMITS.chatHistory) this.chat.shift();
     this.fx({ type: 'chat', message });

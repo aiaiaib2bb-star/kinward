@@ -5,7 +5,9 @@ import { useApp } from './state/app';
 import { useSettings } from './state/settings';
 import { Logo } from './ui/components/Logo';
 import { Game } from './ui/game/Game';
+import { History } from './ui/screens/History';
 import { Home } from './ui/screens/Home';
+import { Leaderboard } from './ui/screens/Leaderboard';
 import { Lobby } from './ui/screens/Lobby';
 import { Onboarding } from './ui/screens/Onboarding';
 import { Profile } from './ui/screens/Profile';
@@ -103,6 +105,8 @@ export function App() {
           {overlay === 'profile' && <Profile />}
           {overlay === 'settings' && <Settings />}
           {overlay === 'rules' && <Rules />}
+          {overlay === 'history' && <History />}
+          {overlay === 'leaderboard' && <Leaderboard />}
         </div>
       )}
       <Toasts />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botChooseTrump, botPlay, type BotView } from '../src/shared/bot';
+import { botAcceptsSwap, botChooseTrump, botPlay, type BotView, handStrength } from '../src/shared/bot';
 import { newDeck, suitOf } from '../src/shared/cards';
 import { type Play, TRICKS_TO_WIN_HAND, dealHands, handOutcome, isLegalPlay, nextSeat, teamOf, trickWinner } from '../src/shared/rules';
 import { fisherYates, seededRng } from '../src/shared/shuffle';
@@ -89,5 +89,26 @@ describe('bot play', () => {
       }
       expect(handOutcome(won, teamOf(hakem))).not.toBeNull();
     }
+  });
+});
+
+describe('bot swap answer', () => {
+  const weak = ['H2', 'H3', 'H4', 'C2', 'C3', 'C5', 'C6', 'D2', 'D3', 'D4', 'D5', 'D7', 'H6'];
+  const strong = ['S14', 'S13', 'S12', 'S11', 'S10', 'S9', 'H14', 'C14', 'D14', 'H13', 'C13', 'D13', 'S2'];
+
+  it('rates a hand by its trumps and top cards', () => {
+    expect(handStrength(strong, 'S')).toBeGreaterThan(handStrength(weak, 'S') * 5);
+  });
+
+  it('usually takes the gamble with a poor hand and keeps a good one', () => {
+    const rng = seededRng(7);
+    let weakYes = 0;
+    let strongYes = 0;
+    for (let i = 0; i < 400; i++) {
+      if (botAcceptsSwap(weak, 'S', rng)) weakYes++;
+      if (botAcceptsSwap(strong, 'S', rng)) strongYes++;
+    }
+    expect(weakYes).toBeGreaterThan(280);
+    expect(strongYes).toBeLessThan(30);
   });
 });

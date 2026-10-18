@@ -1,7 +1,7 @@
 import type { Profile, RTCIceServerLike, RoomView } from '../../shared/protocol';
 import { createStore, useStore } from './store';
 
-export type Screen = 'home' | 'shop' | 'profile' | 'settings' | 'rules';
+export type Screen = 'home' | 'shop' | 'profile' | 'settings' | 'rules' | 'history' | 'leaderboard';
 
 export interface Toast {
   id: number;
@@ -23,6 +23,8 @@ export interface AppState {
   elsewhere: boolean;
   /** A table code from the link that opened the app, joined once we're signed in. */
   pendingJoin: string | null;
+  /** What this server has switched on. */
+  features: { gifs: boolean };
 }
 
 export const app = createStore<AppState>({
@@ -36,6 +38,7 @@ export const app = createStore<AppState>({
   iceServers: [],
   elsewhere: false,
   pendingJoin: null,
+  features: { gifs: false },
 });
 
 export function useApp<U>(selector: (s: AppState) => U): U {

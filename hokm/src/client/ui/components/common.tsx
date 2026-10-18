@@ -66,11 +66,24 @@ export function Dialog({ open, children, onClose, className }: { open: boolean; 
   );
 }
 
-export function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boolean) => void; label: ReactNode; sub?: ReactNode }) {
+export function Toggle({
+  on,
+  onChange,
+  label,
+  sub,
+  disabled,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  label: ReactNode;
+  sub?: ReactNode;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       className="row-toggle"
+      disabled={disabled}
       onClick={() => {
         sfx.play('click');
         onChange(!on);

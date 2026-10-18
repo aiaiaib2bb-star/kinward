@@ -1,23 +1,26 @@
-import { useEffect, useState } from 'react';
-import { ECONOMY, levelOf, xpForLevel } from '../../../shared/constants';
+import { type CSSProperties, useEffect, useState } from 'react';
+import { ECONOMY, levelOf, levelTitle, xpForLevel } from '../../../shared/constants';
 import { sfx } from '../../audio/sfx';
 import { buzz } from '../../fx/haptics';
-import { useT } from '../../i18n';
+import { useLang, useT } from '../../i18n';
 import { net } from '../../net/socket';
-import { go, toast, useApp } from '../../state/app';
+import { type Screen, go, toast, useApp } from '../../state/app';
 import { publicOf } from '../../state/selectors';
 import { Avatar } from '../components/Avatar';
+import { PlayingCard } from '../components/Card';
 import { CoinAmount, Sheet } from '../components/common';
-import { Logo } from '../components/Logo';
+import { BookIcon, CartIcon, ChevronIcon, ChipIcon, Crest, GearIcon, HistoryIcon, KeyIcon, PeopleIcon, TrophyIcon } from '../components/Icons';
 
 export function Home() {
   const t = useT();
+  const lang = useLang();
   const profile = useApp((s) => s.profile)!;
   const [joinOpen, setJoinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const level = levelOf(profile.xp);
   const into = profile.xp - xpForLevel(level);
   const span = xpForLevel(level + 1) - xpForLevel(level);
+  const title = levelTitle(level);
 
   const create = async (practice: boolean) => {
     if (busy) return;
@@ -28,77 +31,111 @@ export function Home() {
     setBusy(false);
   };
 
+  const open = (screen: Screen) => {
+    sfx.play('click');
+    go(screen);
+  };
+
   return (
-    <div className="screen">
+    <div className="screen home">
       <div className="screen-inner">
         <div className="home-head">
-          <button type="button" className="me-chip" onClick={() => go('profile')}>
-            <Avatar profile={publicOf(profile)} size={52} showLevel />
-            <span style={{ minWidth: 0 }}>
-              <div className="name">{profile.name}</div>
-              <div className="lvl">{t('level', { n: level })}</div>
-              <div className="xp-bar">
+          <button type="button" className="me-pill" onClick={() => open('profile')}>
+            <Avatar profile={publicOf(profile)} size={50} showLevel />
+            <span className="me-text">
+              <span className="name">{profile.name}</span>
+              <span className="lvl">{lang === 'fa' ? title.fa : `${title.en} · ${title.fa}`}</span>
+              <span className="xp-bar">
                 <i style={{ width: `${Math.min(100, (into / span) * 100)}%` }} />
-              </div>
+              </span>
             </span>
           </button>
-          <DailyGift />
-          <button type="button" className="coin-pill" onClick={() => go('shop')}>
-            <CoinAmount value={profile.coins} size={20} />
-          </button>
+          <div className="home-side">
+            <button type="button" className="coin-pill plus" onClick={() => open('shop')}>
+              <CoinAmount value={profile.coins} size={20} />
+              <span className="plus-dot">+</span>
+            </button>
+            <div className="home-icons">
+              <DailyGift />
+              <button type="button" className="icon-btn gold-line" onClick={() => open('settings')} aria-label={t('settings')}>
+                <GearIcon size={22} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="home-hero">
-          <Logo compact />
+        <Crest />
+
+        <div className="home-aces" aria-hidden="true">
+          {['S14', 'H14', 'C14', 'D14'].map((card, i) => (
+            <PlayingCard key={card} card={card} face="face_ivory" width={74} style={{ ['--i' as string]: i - 1.5 } as CSSProperties} />
+          ))}
+          <div className="home-rim" />
         </div>
 
         <div className="home-actions">
-          <button type="button" className="big-action gold" onClick={() => create(false)} disabled={busy}>
-            <span className="ba-icon">🃏</span>
-            <span>
-              <div className="ba-title">{t('play_friends')}</div>
-              <div className="ba-sub">{t('play_friends_sub')}</div>
+          <button type="button" className="home-btn gold" onClick={() => create(true)} disabled={busy}>
+            <ChipIcon />
+            <span className="hb-title">{t('play_computer')}</span>
+            <span className="hb-chev">
+              <ChevronIcon />
+            </span>
+          </button>
+          <button type="button" className="home-btn felt" onClick={() => create(false)} disabled={busy}>
+            <PeopleIcon />
+            <span className="hb-title">{t('play_friends')}</span>
+            <span className="hb-chev">
+              <ChevronIcon />
             </span>
           </button>
           <button
             type="button"
-            className="big-action turq"
+            className="home-btn night"
             onClick={() => {
               sfx.play('click');
               setJoinOpen(true);
             }}
           >
-            <span className="ba-icon">🔑</span>
-            <span>
-              <div className="ba-title">{t('join_code')}</div>
-              <div className="ba-sub">{t('join_code_sub')}</div>
-            </span>
-          </button>
-          <button type="button" className="big-action glass" onClick={() => create(true)} disabled={busy}>
-            <span className="ba-icon">🤖</span>
-            <span>
-              <div className="ba-title">{t('practice')}</div>
-              <div className="ba-sub">{t('practice_sub')}</div>
+            <KeyIcon />
+            <span className="hb-title">{t('join_code')}</span>
+            <span className="hb-chev">
+              <ChevronIcon />
             </span>
           </button>
         </div>
 
-        <div className="home-grid">
-          <button type="button" className="tile" onClick={() => go('shop')}>
-            <span className="tile-icon">🛍️</span>
-            {t('shop')}
+        <div className="home-tiles">
+          <button type="button" className="home-tile shop" onClick={() => open('shop')}>
+            <CartIcon />
+            <b>{t('shop')}</b>
+            <small>{t('tile_shop_sub')}</small>
+            <span className="tile-art" aria-hidden="true">
+              <PlayingCard down back="back_royal_crimson" face="face_classic" width={44} style={{ transform: 'rotate(12deg)' }} />
+              <PlayingCard down back="back_sun_moon" face="face_classic" width={44} style={{ transform: 'rotate(-6deg)' }} />
+            </span>
           </button>
-          <button type="button" className="tile" onClick={() => go('profile')}>
-            <span className="tile-icon">👤</span>
-            {t('profile')}
+          <button type="button" className="home-tile" onClick={() => open('leaderboard')}>
+            <TrophyIcon />
+            <b>{t('leaderboard')}</b>
+            <small>{t('tile_leaderboard_sub')}</small>
+            <span className="tile-art trophy" aria-hidden="true">
+              🏆
+            </span>
           </button>
-          <button type="button" className="tile" onClick={() => go('rules')}>
-            <span className="tile-icon">📖</span>
-            {t('rules')}
+          <button type="button" className="home-tile" onClick={() => open('history')}>
+            <HistoryIcon />
+            <b>{t('record_short', { w: profile.stats.won, l: profile.stats.lost })}</b>
+            <small>{t('tile_record_sub')}</small>
+            <span className="tile-art bars" aria-hidden="true">
+              <i style={{ height: '40%' }} />
+              <i style={{ height: '65%' }} />
+              <i style={{ height: '90%' }} />
+            </span>
           </button>
-          <button type="button" className="tile" onClick={() => go('settings')}>
-            <span className="tile-icon">⚙️</span>
-            {t('settings')}
+          <button type="button" className="home-tile" onClick={() => open('rules')}>
+            <BookIcon />
+            <b>{t('rules')}</b>
+            <small>{t('tile_rules_sub')}</small>
           </button>
         </div>
       </div>

@@ -1,19 +1,24 @@
 import { type CSSProperties, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getItem } from '../../../shared/catalog';
-import type { RoomView } from '../../../shared/protocol';
+import type { Gif, RoomView } from '../../../shared/protocol';
 import { SLAM_SOUND, THROW_SOUND, sfx } from '../../audio/sfx';
 import { type BusEvent, onFx } from '../../fx/bus';
 import { buzz } from '../../fx/haptics';
-import { phraseText, useLang } from '../../i18n';
-import { app } from '../../state/app';
+import { displayName, phraseText, t, useLang, useT } from '../../i18n';
+import { app, toast } from '../../state/app';
+import { seatMember } from '../../state/selectors';
 import { settings } from '../../state/settings';
+import { PlayingCard } from '../components/Card';
+import { GifImage } from '../components/Gifs';
 import type { Geo, Pt } from './geometry';
 
 type Item =
-  | { id: number; kind: 'bubble'; at: Pt; rel: number; text: string; emoji: boolean; ms: number }
+  | { id: number; kind: 'bubble'; at: Pt; rel: number; text: string; emoji: boolean; gif?: Gif; ms: number }
   | { id: number; kind: 'throw'; from: Pt; to: Pt; item: string; target: string; ms: number }
   | { id: number; kind: 'impact'; at: Pt; item: string; ms: number }
-  | { id: number; kind: 'slam'; at: Pt; effect: string; power: number; ms: number };
+  | { id: number; kind: 'slam'; at: Pt; effect: string; power: number; name: string; ms: number }
+  | { id: number; kind: 'boom'; name: string; mine: boolean; ms: number }
+  | { id: number; kind: 'swap'; from: Pt; to: Pt; backs: [string, string]; ms: number };
 
 let seq = 0;
 
@@ -87,8 +92,42 @@ export function FxLayer({
         }
         case 'chat': {
           const { at, rel: r } = where(e.message.from);
-          add({ id: ++seq, kind: 'bubble', at, rel: r, text: e.message.text, emoji: false, ms: 4200 });
+          add({ id: ++seq, kind: 'bubble', at, rel: r, text: e.message.text, emoji: false, gif: e.message.gif, ms: e.message.gif ? 5200 : 4200 });
           if (e.message.from !== me) sfx.play('pop');
+          return;
+        }
+        case 'boom': {
+          const { room: r, mySeat: ms } = ctx.current;
+          const name = displayName(seatMember(r, e.seat)?.profile, s.lang);
+          const mine = ms !== null && e.seat % 2 === ms % 2;
+          add({ id: ++seq, kind: 'boom', name, mine, ms: 2800 });
+          shake(table.current, 1, true);
+          sfx.play('boom');
+          setTimeout(() => sfx.play('stamp'), 260);
+          buzz('boom');
+          return;
+        }
+        case 'swap': {
+          const { room: r, geo: g, rel: toRel } = ctx.current;
+          const a = seatMember(r, e.from);
+          const b = seatMember(r, e.to);
+          const names = { a: displayName(a?.profile, s.lang), b: displayName(b?.profile, s.lang) };
+          if (!e.accepted) {
+            toast(`🙅 ${t('swap_declined', names)}`, 'info', 2400);
+            return;
+          }
+          add({
+            id: ++seq,
+            kind: 'swap',
+            from: g.seats[toRel(e.from)],
+            to: g.seats[toRel(e.to)],
+            backs: [a?.profile.equipped.cardBack ?? 'back_crimson', b?.profile.equipped.cardBack ?? 'back_crimson'],
+            ms: 900,
+          });
+          sfx.play('whoosh');
+          setTimeout(() => sfx.play('riffle'), 250);
+          if (r.seats[e.from] === me || r.seats[e.to] === me) buzz('turn');
+          toast(`🔄 ${t('swap_done', names)}`, 'good', 2800);
           return;
         }
         case 'throw': {
@@ -108,27 +147,44 @@ export function FxLayer({
         case 'slam': {
           // Your own slam already played the moment you threw it.
           if (e.seat === ctx.current.mySeat) return;
-          slamAt(slotOf(e.seat), e.effect, e.power);
+          const m = seatMember(ctx.current.room, e.seat);
+          slamAt(slotOf(e.seat), e.effect, e.power, displayName(m?.profile, s.lang), m?.id);
           return;
         }
         case 'localSlam': {
           const { mySeat: ms, room: r } = ctx.current;
           if (ms === null) return;
           const mine = r.members.find((m) => m.id === r.you);
-          slamAt(slotOf(ms), mine?.profile.equipped.slam ?? 'slam_thud', e.power);
+          slamAt(slotOf(ms), mine?.profile.equipped.slam ?? 'slam_thud', e.power, '', mine?.id);
           return;
         }
         default:
       }
     };
 
-    const slamAt = (at: Pt, effect: string, power: number) => {
-      add({ id: ++seq, kind: 'slam', at, effect, power, ms: effect === 'slam_quake' ? 1600 : 1100 });
-      shake(table.current, power, effect === 'slam_quake');
+    const slamAt = (at: Pt, effect: string, power: number, name: string, memberId?: string) => {
+      add({ id: ++seq, kind: 'slam', at, effect, power, name, ms: effect === 'slam_quake' ? 1700 : 1400 });
+      // Even the softest slam shakes hard enough to notice.
+      shake(table.current, Math.max(0.55, power), effect === 'slam_quake' || power > 0.75);
       const extra = SLAM_SOUND[effect];
-      sfx.play('slam', power);
+      sfx.play('slam', Math.max(0.6, power));
       if (extra && extra !== 'slam') sfx.play(extra, power);
-      buzz('slam');
+      buzz(power > 0.6 ? 'slamHard' : 'slam');
+      if (memberId) pump(memberId);
+    };
+
+    /** The slammer's avatar jumps, so everyone sees who did it. */
+    const pump = (memberId: string) => {
+      const el = document.querySelector(`[data-member="${memberId}"] .avatar`) as HTMLElement | null;
+      el?.animate(
+        [
+          { transform: 'scale(1)' },
+          { transform: 'scale(1.32) rotate(-6deg)', offset: 0.3 },
+          { transform: 'scale(.94) rotate(3deg)', offset: 0.6 },
+          { transform: 'none' },
+        ],
+        { duration: 560, easing: 'ease-out' },
+      );
     };
 
     const wobble = (memberId: string) => {
@@ -157,12 +213,12 @@ export function FxLayer({
             return (
               <div
                 key={it.id}
-                className={`fx-bubble${it.emoji ? ' emoji' : ''} rel-${it.rel}`}
+                className={`fx-bubble${it.emoji ? ' emoji' : ''}${it.gif ? ' gif' : ''} rel-${it.rel}`}
                 style={{ left: it.at.x + off.x, top: it.at.y + off.y, animationDuration: `${it.ms}ms` } as CSSProperties}
                 dir="auto"
                 lang={lang}
               >
-                {it.text}
+                {it.gif ? <GifImage gif={it.gif} width={Math.min(130, geo.w * 0.34)} /> : it.text}
               </div>
             );
           }
@@ -171,7 +227,11 @@ export function FxLayer({
           case 'impact':
             return <Impact key={it.id} at={it.at} item={it.item} />;
           case 'slam':
-            return <SlamFx key={it.id} at={it.at} effect={it.effect} power={it.power} geo={geo} />;
+            return <SlamFx key={it.id} at={it.at} effect={it.effect} power={it.power} name={it.name} geo={geo} />;
+          case 'boom':
+            return <BoomBanner key={it.id} name={it.name} mine={it.mine} />;
+          case 'swap':
+            return <SwapFx key={it.id} from={it.from} to={it.to} backs={it.backs} />;
           default:
             return null;
         }
@@ -284,12 +344,66 @@ function Impact({ at, item }: { at: Pt; item: string }) {
   );
 }
 
-function SlamFx({ at, effect, power, geo }: { at: Pt; effect: string; power: number; geo: Geo }) {
-  const size = geo.trickCard * (1.6 + power * 1.6);
+function BoomBanner({ name, mine }: { name: string; mine: boolean }) {
+  const tt = useT();
+  return (
+    <div className={`fx-boom ${mine ? 'us' : 'them'}`}>
+      <div className="fx-boom-word">💣 {tt('boom_shout')}</div>
+      <div className="fx-boom-sub">{tt('boom_called', { name })}</div>
+    </div>
+  );
+}
+
+/** Two hands crossing the table as they're traded. */
+function SwapFx({ from, to, backs }: { from: Pt; to: Pt; backs: [string, string] }) {
+  const a = useRef<HTMLDivElement>(null);
+  const b = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const fly = (el: HTMLDivElement | null, p: Pt, q: Pt, lift: number) => {
+      const mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 + lift };
+      el?.animate(
+        [
+          { transform: `translate(${p.x}px, ${p.y}px) scale(.6)`, opacity: 0 },
+          { transform: `translate(${mid.x}px, ${mid.y}px) scale(1.15) rotate(180deg)`, opacity: 1, offset: 0.5 },
+          { transform: `translate(${q.x}px, ${q.y}px) scale(.6) rotate(360deg)`, opacity: 0 },
+        ],
+        { duration: 850, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' },
+      );
+    };
+    fly(a.current, from, to, -60);
+    fly(b.current, to, from, 60);
+  }, [from, to]);
+  return (
+    <>
+      {[a, b].map((ref, i) => (
+        <div key={i} ref={ref} className="fx-swap-stack">
+          {[0, 1, 2].map((k) => (
+            <PlayingCard
+              key={k}
+              down
+              back={backs[i]}
+              face="face_classic"
+              width={30}
+              style={{ position: 'absolute', transform: `rotate(${(k - 1) * 12}deg)` }}
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function SlamFx({ at, effect, power, name, geo }: { at: Pt; effect: string; power: number; name: string; geo: Geo }) {
+  const tt = useT();
+  const size = geo.trickCard * (2 + power * 2);
   const style = { left: at.x, top: at.y, ['--size' as string]: `${size}px`, ['--p' as string]: power } as CSSProperties;
   return (
     <>
-      {effect === 'slam_lightning' && <div className="fx-flash" />}
+      {(effect === 'slam_lightning' || power > 0.45) && <div className={`fx-flash${effect === 'slam_lightning' ? '' : ' slam'}`} />}
+      <div className="fx-slam-word" style={{ left: at.x, top: at.y - geo.trickCardH * 0.85, ['--p' as string]: power } as CSSProperties}>
+        <b>{tt('slam_word')}</b>
+        {name && <span>{name}</span>}
+      </div>
       <div className={`fx-slam ${effect}`} style={style}>
         <i className="ring" />
         {effect === 'slam_quake' && <i className="ring late" />}

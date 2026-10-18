@@ -63,11 +63,12 @@ export function computeGeo(w: number, h: number, safe: Geo['safe']): Geo {
   const center = { x: w / 2, y: tableTop + tableH * (landscape ? 0.5 : 0.55) };
   const trickCard = Math.round(clamp(Math.min(w * 0.18, tableH * 0.22), 46, 90));
   const trickCardH = Math.round(trickCard * 1.42);
-  const sideX = Math.max(40, Math.min(w * 0.12, 64));
+  // Room for the bigger avatars and their name tags at the sides.
+  const sideX = Math.max(46, Math.min(w * 0.135, 72));
   const seats: Pt[] = [
-    { x: safe.l + 34, y: myBarY },
+    { x: safe.l + 39, y: myBarY },
     { x: w - safe.r - sideX, y: center.y - tableH * 0.12 },
-    { x: w / 2, y: tableTop + (landscape ? 34 : 42) },
+    { x: w / 2, y: tableTop + (landscape ? 36 : 46) },
     { x: safe.l + sideX, y: center.y - tableH * 0.12 },
   ];
   const dy = trickCardH * 0.36;
@@ -80,9 +81,9 @@ export function computeGeo(w: number, h: number, safe: Geo['safe']): Geo {
   ];
   const fans: Pt[] = [
     { x: w / 2, y: handTop },
-    { x: seats[1].x, y: seats[1].y + 64 },
-    { x: seats[2].x, y: seats[2].y + 64 },
-    { x: seats[3].x, y: seats[3].y + 64 },
+    { x: seats[1].x, y: seats[1].y + 76 },
+    { x: seats[2].x, y: seats[2].y + 76 },
+    { x: seats[3].x, y: seats[3].y + 76 },
   ];
   return { w, h, safe, topBarBottom, handCard, handCardH, handTop, myBarY, trickCard, trickCardH, center, seats, slots, fans, landscape };
 }

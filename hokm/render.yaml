@@ -19,3 +19,7 @@ services:
       # everyone's coins survive restarts on Render's temporary disk.
       - key: HOKM_SECRET
         generateValue: true
+      # GIF search in chat. Paste your GIPHY API key in the Render dashboard;
+      # without it the GIF buttons simply don't appear.
+      - key: GIPHY_API_KEY
+        sync: false

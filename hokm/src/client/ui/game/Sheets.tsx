@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ITEMS, emotesOwned } from '../../../shared/catalog';
+import { levelTitle } from '../../../shared/constants';
 import type { GameView, MemberView, RoomView } from '../../../shared/protocol';
-import { partnerOf, teamOf } from '../../../shared/rules';
+import { HAND_SIZE, partnerOf, teamOf } from '../../../shared/rules';
 import { sfx } from '../../audio/sfx';
 import { buzz } from '../../fx/haptics';
 import { displayName, phraseText, useLang, useT } from '../../i18n';
@@ -14,6 +15,7 @@ import { mesh, useVoice } from '../../voice/mesh';
 import { Avatar } from '../components/Avatar';
 import { PlayingCard } from '../components/Card';
 import { Dialog, Sheet } from '../components/common';
+import { GifPicker } from '../components/Gifs';
 
 const EMOTE_PACKS = ITEMS.filter((i) => i.kind === 'emotes');
 
@@ -21,7 +23,8 @@ export function EmoteSheet({ open, onClose }: { open: boolean; onClose: () => vo
   const t = useT();
   const lang = useLang();
   const profile = useApp((s) => s.profile)!;
-  const [tab, setTab] = useState<'emoji' | 'phrase'>('emoji');
+  const gifsOn = useApp((s) => s.features.gifs);
+  const [tab, setTab] = useState<'emoji' | 'phrase' | 'gif'>('emoji');
   const owned = emotesOwned(profile.owned);
   const all = EMOTE_PACKS.flatMap((p) => (p.emotes ?? []).map((e) => ({ e, pack: p.id })));
   const list = all.filter(({ e }) => (tab === 'phrase') === e.startsWith('p_'));
@@ -39,8 +42,20 @@ export function EmoteSheet({ open, onClose }: { open: boolean; onClose: () => vo
         <button type="button" className={tab === 'phrase' ? 'active' : ''} onClick={() => setTab('phrase')}>
           💬 {t('phrases')}
         </button>
+        {gifsOn && (
+          <button type="button" className={tab === 'gif' ? 'active' : ''} onClick={() => setTab('gif')}>
+            🎞️ {t('gif')}
+          </button>
+        )}
       </div>
-      {tab === 'emoji' ? (
+      {tab === 'gif' ? (
+        <GifPicker
+          onPick={(gif) => {
+            void net.sendGif(gif.id);
+            onClose();
+          }}
+        />
+      ) : tab === 'emoji' ? (
         <div className="emote-grid">
           {list.map(({ e }) => (
             <button
@@ -68,9 +83,11 @@ export function EmoteSheet({ open, onClose }: { open: boolean; onClose: () => vo
           ))}
         </div>
       )}
-      <button type="button" className="btn btn-glass btn-block btn-small" style={{ marginTop: 14 }} onClick={() => (onClose(), go('shop'))}>
-        🛍️ {t('locked_more')}
-      </button>
+      {tab !== 'gif' && (
+        <button type="button" className="btn btn-glass btn-block btn-small" style={{ marginTop: 14 }} onClick={() => (onClose(), go('shop'))}>
+          🛍️ {t('locked_more')}
+        </button>
+      )}
     </Sheet>
   );
 }
@@ -91,12 +108,32 @@ export function PlayerSheet({ member, room, onClose }: { member: MemberView | nu
   const isMe = member.id === room.you;
   return (
     <Sheet open onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-        <Avatar profile={member.profile} size={80} showLevel />
-        <div style={{ fontSize: 20, fontWeight: 600 }}>{displayName(member.profile, lang)}</div>
-        <div className="muted" style={{ fontSize: 14 }}>
-          {t('level', { n: member.profile.level })} · {t('player_stats', { w: member.profile.stats.won, k: member.profile.stats.kots })}
+      <div className="player-card">
+        <Avatar profile={member.profile} size={112} showLevel />
+        <div className="pc-name">{displayName(member.profile, lang)}</div>
+        <div className="pc-title">
+          {t('level', { n: member.profile.level })} · {levelTitle(member.profile.level)[lang]}
         </div>
+        {!member.profile.bot && (
+          <div className="pc-stats">
+            <span>
+              <b>{member.profile.stats.won}</b>
+              {t('stat_won')}
+            </span>
+            <span>
+              <b>{member.profile.stats.played}</b>
+              {t('stat_played')}
+            </span>
+            <span>
+              <b>{member.profile.stats.kots}</b>
+              {t('stat_kots')}
+            </span>
+            <span>
+              <b>{member.profile.stats.bestStreak}</b>
+              {t('stat_streak')}
+            </span>
+          </div>
+        )}
       </div>
       {!isMe && (
         <>
@@ -289,6 +326,177 @@ export function AwayBanner({ onBack }: { onBack: () => void }) {
       <button type="button" className="btn btn-gold btn-small" onClick={onBack}>
         {t('im_back')}
       </button>
+    </div>
+  );
+}
+
+// ——— Boom and swapping hands ———
+
+/** Why you can or can't call Boom right now. */
+export function boomStatus(room: RoomView, game: GameView, mySeat: number | null): 'ok' | 'off' | 'taken' | 'late' | 'spectator' {
+  if (mySeat === null) return 'spectator';
+  if (!room.settings.booms) return 'off';
+  if (game.boom) return 'taken';
+  if (game.phase !== 'play' || game.tricksWon[0] + game.tricksWon[1] > 0) return 'late';
+  return 'ok';
+}
+
+/** Why you can or can't offer a swap right now. */
+export function swapStatus(room: RoomView, game: GameView, mySeat: number | null): 'ok' | 'off' | 'used' | 'pending' | 'between' | 'spectator' {
+  if (mySeat === null) return 'spectator';
+  if (!room.settings.swaps) return 'off';
+  if (game.swapsUsed.includes(mySeat)) return 'used';
+  if (game.swapOffer) return 'pending';
+  if (game.phase !== 'play' || game.trick.length > 0) return 'between';
+  return 'ok';
+}
+
+export function MovesSheet({
+  open,
+  onClose,
+  room,
+  game,
+  mySeat,
+}: {
+  open: boolean;
+  onClose: () => void;
+  room: RoomView;
+  game: GameView;
+  mySeat: number | null;
+}) {
+  const t = useT();
+  const lang = useLang();
+  const [confirm, setConfirm] = useState(false);
+  const boom = boomStatus(room, game, mySeat);
+  const swap = swapStatus(room, game, mySeat);
+  const opponents = mySeat === null ? [] : [(mySeat + 1) % 4, (mySeat + 3) % 4];
+  // The moment can pass while the sheet is open.
+  useEffect(() => {
+    if (boom !== 'ok') setConfirm(false);
+  }, [boom]);
+
+  return (
+    <>
+      <Sheet open={open} onClose={onClose} title={t('moves')}>
+        <div className="move-card boom">
+          <div className="mc-head">
+            <span className="mc-icon">💣</span>
+            <div>
+              <div className="mc-title">{t('boom')}</div>
+              <div className="mc-sub">{t('boom_sub')}</div>
+            </div>
+          </div>
+          <button type="button" className="btn btn-rose btn-block" disabled={boom !== 'ok'} onClick={() => setConfirm(true)}>
+            💣 {t('boom_call')}
+          </button>
+          {boom !== 'ok' && <div className="mc-why">{t(`boom_why_${boom}`)}</div>}
+        </div>
+
+        <div className="move-card swap">
+          <div className="mc-head">
+            <span className="mc-icon">🔄</span>
+            <div>
+              <div className="mc-title">{t('swap')}</div>
+              <div className="mc-sub">{t('swap_sub')}</div>
+            </div>
+          </div>
+          <div className="mc-targets">
+            {opponents.map((seat) => {
+              const m = seatMember(room, seat);
+              if (!m) return null;
+              return (
+                <button
+                  key={seat}
+                  type="button"
+                  className="mc-target"
+                  disabled={swap !== 'ok'}
+                  onClick={async () => {
+                    sfx.play('whoosh');
+                    if (await net.offerSwap(seat)) onClose();
+                  }}
+                >
+                  <Avatar profile={m.profile} size={40} />
+                  <span>{t('swap_with', { name: displayName(m.profile, lang) })}</span>
+                </button>
+              );
+            })}
+          </div>
+          {swap !== 'ok' && <div className="mc-why">{t(`swap_why_${swap}`)}</div>}
+        </div>
+      </Sheet>
+      <Dialog open={confirm} onClose={() => setConfirm(false)} className="boom-dialog">
+        <div style={{ fontSize: 50 }}>💣</div>
+        <h2>{t('boom_confirm_title')}</h2>
+        <p>{t('boom_confirm', { n: HAND_SIZE })}</p>
+        <div className="dialog-actions">
+          <button type="button" className="btn btn-glass" onClick={() => setConfirm(false)}>
+            {t('cancel')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-rose"
+            onClick={async () => {
+              setConfirm(false);
+              if (await net.boom()) onClose();
+            }}
+          >
+            {t('boom_go')}
+          </button>
+        </div>
+      </Dialog>
+    </>
+  );
+}
+
+/** The opponent's yes/no to a swap, and a banner for everyone else while it waits. */
+export function SwapPrompt({ room, game, mySeat }: { room: RoomView; game: GameView; mySeat: number | null }) {
+  const t = useT();
+  const lang = useLang();
+  const offer = game.swapOffer;
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!offer) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [offer]);
+  useEffect(() => {
+    if (offer && offer.to === mySeat) {
+      sfx.play('turn');
+      buzz('turn');
+    }
+  }, [offer, mySeat]);
+  if (!offer) return null;
+  const left = Math.max(0, Math.ceil((toLocal(offer.expires) - now) / 1000));
+  const from = displayName(seatMember(room, offer.from)?.profile, lang);
+  const to = displayName(seatMember(room, offer.to)?.profile, lang);
+  if (offer.to === mySeat) {
+    const fromMember = seatMember(room, offer.from);
+    return (
+      <Dialog open className="swap-dialog">
+        {fromMember && <Avatar profile={fromMember.profile} size={72} />}
+        <h2>🔄 {t('swap_ask', { name: from })}</h2>
+        <p>{t('swap_ask_sub')}</p>
+        <div className="dialog-actions">
+          <button type="button" className="btn btn-glass" onClick={() => net.answerSwap(false)}>
+            {t('swap_no')} ({left})
+          </button>
+          <button
+            type="button"
+            className="btn btn-turq"
+            onClick={() => {
+              sfx.play('whoosh');
+              net.answerSwap(true);
+            }}
+          >
+            {t('swap_yes')}
+          </button>
+        </div>
+      </Dialog>
+    );
+  }
+  return (
+    <div className="surrender-banner swap-banner">
+      🔄 {offer.from === mySeat ? t('swap_waiting', { name: to }) : t('swap_watching', { a: from, b: to })} <b>{left}</b>
     </div>
   );
 }
