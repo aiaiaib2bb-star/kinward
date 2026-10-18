@@ -106,13 +106,14 @@ hand. A plain win is 1 point, a **Kot** (7–0) is 2, and a **Hakem Kot** — th
 Hakem's own team shut out — is 3. The Hakem keeps the role while their team
 wins and passes it to the right when it loses. Tables play to 3, 5, 7 or 10.
 
-**Shuffle and cut.** The Hakem shuffles as much as they like: each tap is a real
-riffle, modelled the way hands do it, and the deck carries over from the last
-hand the way it's gathered off a real table. Shuffle once and the deal
-remembers the last hand; shuffle seven times and it doesn't. Then the opponent
-on the Hakem's left cuts by dragging down the side of the deck to choose the
-depth, and can cut again before dealing. A table can switch to *Random* deals
-if it'd rather not.
+**Shuffle and cut.** Every hand is dealt from a fully random deck: the server
+shuffles it with the operating system's cryptographic random numbers (a
+Fisher–Yates shuffle, so every order of the 52 cards is equally likely). Then
+the Hakem shuffles as much as they like (each tap is a real riffle of that very
+deck) and the opponent on the Hakem's left cuts by dragging down the side of
+the deck to choose the depth, and can cut again before dealing. The cards come
+off the top of exactly that deck, so the shuffles and the cut really decide who
+gets what, and no amount of lazy shuffling can make a deal less random.
 
 **Playing a card.** Slide your finger along the hand — the card under it rises —
 then swipe up or drag it onto the table. Or tap a card to raise it and tap

@@ -48,7 +48,7 @@ interface Member {
 // Bots are named for heroes of the Shahnameh. The client translates the key.
 const BOT_NAMES = ['rostam', 'sohrab', 'gordafarid', 'tahmineh', 'kaveh', 'shirin', 'farhad', 'manijeh', 'bijan', 'rudabeh', 'zal', 'siavash'];
 
-const DEFAULT_SETTINGS: RoomSettings = { targetScore: 7, turnTime: 30, shuffleMode: 'real', swaps: true, booms: true };
+const DEFAULT_SETTINGS: RoomSettings = { targetScore: 7, turnTime: 30, swaps: true, booms: true };
 
 export class Room {
   readonly members = new Map<string, Member>();
@@ -278,7 +278,6 @@ export class Room {
     if (requester !== this.hostId || this.match) return;
     if (TARGET_SCORES.includes(patch.targetScore as never)) this.settings.targetScore = patch.targetScore!;
     if (TURN_TIMES.includes(patch.turnTime as never)) this.settings.turnTime = patch.turnTime!;
-    if (patch.shuffleMode === 'real' || patch.shuffleMode === 'random') this.settings.shuffleMode = patch.shuffleMode;
     if (typeof patch.swaps === 'boolean') this.settings.swaps = patch.swaps;
     if (typeof patch.booms === 'boolean') this.settings.booms = patch.booms;
     this.touch();

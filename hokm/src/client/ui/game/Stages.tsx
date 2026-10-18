@@ -285,7 +285,6 @@ function RevealCard({
 const DECK_LINES = 52;
 
 export function DeckStage({ game, geo, room, mySeat, back }: { game: GameView; geo: Geo; room: RoomView; mySeat: number | null; back: string }) {
-  const realDeck = room.settings.shuffleMode === 'real' && game.handNumber > 1;
   const t = useT();
   const lang = useLang();
   const shuffling = game.phase === 'shuffle';
@@ -329,7 +328,7 @@ export function DeckStage({ game, geo, room, mySeat, back }: { game: GameView; g
           mine ? (
             <>
               <div className="stage-title">{t('you_shuffle')}</div>
-              {realDeck && <div className="stage-sub">{t('deck_remembers')}</div>}
+              <div className="stage-sub">{t('deck_random')}</div>
               <div className="stage-buttons">
                 <button type="button" className="btn btn-turq btn-small" onClick={() => doOp('riffle')}>
                   🔀 {t('riffle')}

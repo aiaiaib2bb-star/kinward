@@ -19,7 +19,7 @@ export function randomInt(rng: Rng, min: number, maxInclusive: number): number {
   return min + Math.floor(rng() * (maxInclusive - min + 1));
 }
 
-/** A perfectly uniform shuffle. Used when a room asks for "always random" decks. */
+/** A perfectly uniform shuffle: every hand's deck starts from one. */
 export function fisherYates(deck: readonly Card[], rng: Rng): Card[] {
   const out = deck.slice();
   for (let i = out.length - 1; i > 0; i--) {
@@ -33,9 +33,10 @@ export function fisherYates(deck: readonly Card[], rng: Rng): Card[] {
  * One riffle shuffle, modelled the way hands actually do it (Gilbert–Shannon–
  * Reeds): the deck is split roughly in half, binomially, and cards fall from
  * the two halves with probability proportional to how many each half still
- * holds. A single riffle leaves a lot of the old order intact; about seven
- * mix a 52-card deck thoroughly. That is the point — a dealer who shuffles
- * once deals a hand that remembers the last one, exactly like at a real table.
+ * holds. On its own a riffle leaves a lot of the old order intact (about
+ * seven mix a 52-card deck thoroughly); in the game it is applied to a deck
+ * that is already fully random, so it moves real cards without making any
+ * deal less random.
  */
 export function riffle(deck: readonly Card[], rng: Rng): Card[] {
   let split = 0;

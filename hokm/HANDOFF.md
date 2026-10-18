@@ -148,9 +148,9 @@ hokm/tests/       rules, bot, match
 - **Seats:** turn order is counter-clockwise (seat + 1 is on your right),
   partners are seats 0+2 and 1+3, and the cutter is the opponent on the
   Hakem's left.
-- **Shuffling:** in *Real* mode the next deal starts from the previous hand as
-  it was gathered, and each shuffle is a Gilbert–Shannon–Reeds riffle; *Random*
-  mode is a Fisher–Yates shuffle.
+- **Shuffling:** every hand starts with a Fisher–Yates shuffle driven by the
+  OS's cryptographic RNG; the hakem's shuffles (Gilbert–Shannon–Reeds riffles)
+  and the cut are then applied to that deck before the deal.
 - **Absent players:** the server plays for bots, for players on autopilot, and
   for disconnected players after an 8-second grace. A match pauses when no
   human is online.

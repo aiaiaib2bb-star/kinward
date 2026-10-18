@@ -92,8 +92,6 @@ export interface RoomSettings {
   targetScore: number;
   /** Seconds per move; 0 means no limit. */
   turnTime: number;
-  /** 'real': the deck carries the last hand's order and only the dealer's shuffles mix it. 'random': every deal is fully random. */
-  shuffleMode: 'real' | 'random';
   /** Players may offer an opponent a straight swap of hands. */
   swaps: boolean;
   /** Players may call Boom: take all 13 tricks and win the game outright. */

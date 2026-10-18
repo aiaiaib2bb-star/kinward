@@ -369,7 +369,10 @@ export class Match {
     this.swapsUsed.clear();
     this.clearSwapTimer();
     this.ops = { shuffles: 0, cuts: 0, last: null, seq: this.ops.seq };
-    if (this.settings.shuffleMode === 'random') this.deck = fisherYates(this.deck, this.rng);
+    // Every hand starts from a fully random deck (the server's RNG is the OS's
+    // cryptographic one). The hakem's riffles and the cutter's cut are then
+    // really applied to it, and the deal comes off the top of the result.
+    this.deck = fisherYates(this.deck, this.rng);
     this.stats.timesHakem[this.hakem!] += 1;
     this.setPhase('shuffle');
     this.startActor(T.shufflePhase);

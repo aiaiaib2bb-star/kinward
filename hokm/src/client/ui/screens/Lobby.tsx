@@ -173,19 +173,7 @@ export function Lobby({ room }: { room: RoomView }) {
               onChange={(v) => net.roomSettings({ turnTime: v })}
             />
           </div>
-          <div className="setting-line">
-            <span>{t('settings_shuffle')}</span>
-            <Segmented
-              value={room.settings.shuffleMode}
-              disabled={!isHost}
-              options={[
-                { value: 'real', label: `🃏 ${t('shuffle_real')}` },
-                { value: 'random', label: `🎲 ${t('shuffle_random')}` },
-              ]}
-              onChange={(v) => net.roomSettings({ shuffleMode: v })}
-            />
-            <p className="setting-hint">{room.settings.shuffleMode === 'real' ? t('shuffle_real_hint') : t('shuffle_random_hint')}</p>
-          </div>
+          <p className="setting-hint">🎲 {t('deck_random_hint')}</p>
           <Toggle
             on={room.settings.booms}
             disabled={!isHost}

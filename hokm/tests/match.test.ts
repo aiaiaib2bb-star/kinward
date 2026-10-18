@@ -5,7 +5,7 @@ import type { RoomSettings } from '../src/shared/protocol';
 import { legalPlays } from '../src/shared/rules';
 import { seededRng } from '../src/shared/shuffle';
 
-const settings: RoomSettings = { targetScore: 7, turnTime: 30, shuffleMode: 'real', swaps: true, booms: true };
+const settings: RoomSettings = { targetScore: 7, turnTime: 30, swaps: true, booms: true };
 
 function harness(controls: Control[], opts: Partial<RoomSettings> = {}, seed = 1) {
   const events = { slams: 0, toasts: [] as string[], changes: 0, booms: [] as number[], swaps: [] as [number, number, boolean][] };
@@ -149,12 +149,27 @@ describe('match flow', () => {
     await h.until(() => !!h.ended(), 20000);
   }, 30000);
 
-  it('carries the deck over between hands in real mode', async () => {
-    const h = harness(['bot', 'bot', 'bot', 'bot'], { targetScore: 10 });
+  it('starts every hand from a freshly shuffled full deck, then applies the real shuffles and cut', async () => {
+    // Idle humans: the clock plays for them, and the shuffle phase waits long enough to look at the deck.
+    const h = harness(['human', 'human', 'human', 'human'], { targetScore: 10, turnTime: 15 });
+    const inner = h.match as unknown as { deck: string[]; hands: string[][] };
     h.match.start();
-    await h.until(() => h.match.handNumber === 2 && h.match.phase === 'deal1', 20000);
-    const all = [0, 1, 2, 3].flatMap((s) => (h.match as unknown as { hands: string[][] }).hands[s]);
-    expect(new Set(all).size).toBe(52);
+    await h.until(() => h.match.phase === 'handEnd', 20000);
+    const gathered = inner.deck.slice();
+    expect(new Set(gathered).size).toBe(52);
+    await h.until(() => h.match.handNumber === 2 && h.match.phase === 'shuffle', 20000);
+    expect(h.match.viewFor(0).deckOps.shuffles).toBe(0);
+    const fresh = inner.deck.slice();
+    expect(new Set(fresh).size).toBe(52);
+    // Not the order the last hand left on the table.
+    expect(fresh).not.toEqual(gathered);
+    // The hakem's riffle and the cutter's cut really move the cards that get dealt.
+    h.match.shuffle(h.match.hakem!, 'riffle');
+    expect(inner.deck).not.toEqual(fresh);
+    h.match.shuffleDone(h.match.hakem!);
+    const beforeCut = inner.deck.slice();
+    h.match.cut(h.match.viewFor(0).cutter!, 20);
+    expect(inner.deck).toEqual([...beforeCut.slice(20), ...beforeCut.slice(0, 20)]);
     h.match.dispose();
   }, 30000);
 });

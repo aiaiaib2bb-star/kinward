@@ -27,7 +27,7 @@ const RULES = {
         title: 'Shuffle and cut',
         body: [
           'The Hakem shuffles, as much as they like. Then an opponent, the player on the Hakem’s left, cuts the deck and decides how deep the cut goes.',
-          'With the “Real” deck the cards keep the order of the last hand, so a lazy shuffle deals clumpy hands, just like at a real table. “Random” makes every deal perfectly random.',
+          'Every hand starts from a fully random deck, shuffled by the server. The shuffles and the cut are real: they move the actual cards before the deal, so they decide who gets what, but they can never make a deal less random.',
         ],
       },
       {
@@ -101,7 +101,7 @@ const RULES = {
         title: 'بُر زدن و کات',
         body: [
           'حاکم هر چقدر بخواهد ورق‌ها را بُر می‌زند. بعد حریفِ سمت چپ حاکم دسته را کات می‌کند و خودش انتخاب می‌کند از کجا کات شود.',
-          'در حالت «واقعی» ورق‌ها ترتیب دست قبل را نگه می‌دارند؛ اگر کم بُر بخورد، دست‌ها جفت‌جفت پخش می‌شوند، درست مثل میز واقعی. در حالت «تصادفی» هر پخش کاملاً تصادفی است.',
+          'هر دست از یک دسته کاملاً تصادفی شروع می‌شود که سرور بُر زده است. بُر زدن و کات کردن واقعی‌اند: کارت‌های واقعی را قبل از پخش جابه‌جا می‌کنند و تعیین می‌کنند چه کسی چه بگیرد، ولی هیچ‌وقت پخش را کمتر تصادفی نمی‌کنند.',
         ],
       },
       {
