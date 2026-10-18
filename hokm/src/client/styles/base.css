@@ -1,0 +1,146 @@
+:root {
+  --bg: #0d1023;
+  --bg-2: #161a3a;
+  --bg-3: #20265a;
+  --panel: rgba(255, 255, 255, 0.065);
+  --panel-2: rgba(255, 255, 255, 0.1);
+  --line: rgba(255, 255, 255, 0.13);
+  --text: #f6f3ec;
+  --muted: #a9a8c8;
+  --gold: #f7c654;
+  --gold-2: #e9a52a;
+  --gold-ink: #3b2600;
+  --turq: #33c9ba;
+  --turq-2: #18998c;
+  --rose: #ff5d73;
+  --us: #43dccb;
+  --them: #ff8080;
+  --good: #4fd583;
+  --bad: #ff5468;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --font: 'Fredoka', 'Vazirmatn Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+html[lang='fa'] {
+  --font: 'Vazirmatn Variable', 'Fredoka', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea {
+  font: inherit;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+.ltr {
+  direction: ltr;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pulse-glow {
+  50% {
+    filter: brightness(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-iteration-count: 1 !important;
+}

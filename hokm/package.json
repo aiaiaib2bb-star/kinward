@@ -1,0 +1,44 @@
+{
+  "name": "hokm",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Hokm (\u062d\u06a9\u0645), the Persian trick-taking card game, built for phones and played with friends.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c yellow,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "tsx watch src/server/index.ts",
+    "dev:client": "vite",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "esbuild src/server/index.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=dist/server/index.js",
+    "start": "node dist/server/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "@fontsource-variable/vazirmatn": "^5.3.0",
+    "@fontsource/fredoka": "^5.3.0",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "concurrently": "^10.0.6",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "socket.io-client": "^4.8.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7"
+  }
+}
