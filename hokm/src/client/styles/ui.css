@@ -210,6 +210,7 @@
 .sheet {
   width: 100%;
   max-width: 560px;
+  max-height: 84vh;
   max-height: 84dvh;
   overflow-y: auto;
   background: linear-gradient(180deg, #252b66, #181c43);

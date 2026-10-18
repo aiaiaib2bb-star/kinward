@@ -55,6 +55,7 @@ class Sfx {
   private ctx: AudioContext | null = null;
   private out: GainNode | null = null;
   private noise: AudioBuffer | null = null;
+  private primed = false;
 
   private ensure(): AudioContext | null {
     if (!this.ctx) {
@@ -77,14 +78,17 @@ class Sfx {
     return this.ctx;
   }
 
-  /** Browsers only allow audio after a touch; call this from the first one. */
+  /** Browsers only allow audio after a tap; call this from taps until it's running. */
   unlock() {
+    if (this.primed && this.ctx?.state === 'running') return;
     const ctx = this.ensure();
     if (!ctx) return;
+    // iOS wants a sound started inside the gesture itself; a silent one will do.
     const src = ctx.createBufferSource();
     src.buffer = ctx.createBuffer(1, 1, 22050);
     src.connect(ctx.destination);
     src.start(0);
+    if (ctx.state === 'running') this.primed = true;
   }
 
   get context(): AudioContext | null {

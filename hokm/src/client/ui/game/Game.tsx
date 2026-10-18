@@ -25,6 +25,8 @@ import { AwayBanner, EmoteSheet, GameMenu, LastTrickSheet, PlayerSheet, Surrende
 import { DealLayer, DeckStage, HakemSelect, TrumpAnnounce, TrumpPicker, TrumpWaiting, useDealCounts } from './Stages';
 import { TrickLayer } from './Trick';
 
+const coarsePointer = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
 function useWakeLock(active: boolean) {
   useEffect(() => {
     if (!active || !('wakeLock' in navigator)) return;
@@ -76,6 +78,8 @@ export function Game({ room }: { room: RoomView }) {
   const origins = useRef(new Map<Card, PlayOrigin>());
 
   useWakeLock(true);
+  // Where your cards left the hand only matters until they land; start each hand fresh.
+  useEffect(() => origins.current.clear(), [game.handNumber]);
   const dealCounts = useDealCounts(game);
 
   // A played card is "pending" until the server's next view has it on the table.
@@ -182,121 +186,124 @@ export function Game({ room }: { room: RoomView }) {
   const handEnabled = mySeat !== null && !dealCounts;
 
   return (
-    <div ref={root} className="game" style={{ background: tableBg.background, ['--tint' as string]: tableBg.tint } as CSSProperties}>
-      {geo && (
-        <>
-          <div ref={table} className="table-shake">
-            <div className="table-vignette" />
-            {[1, 2, 3].map((r) => {
-              const seat = (viewSeat + r) % 4;
-              const count = dealCounts ? dealCounts[seat] : game.handCounts[seat];
-              return <Seat key={seat} room={room} game={game} seat={seat} rel={r} geo={geo} viewSeat={viewSeat} count={count} onTap={setTarget} />;
-            })}
-            {spectating && seatMember(room, 0) && (
-              <Seat
-                room={room}
-                game={game}
-                seat={0}
-                rel={0}
-                geo={geo}
-                viewSeat={viewSeat}
-                count={dealCounts ? dealCounts[0] : game.handCounts[0]}
-                onTap={setTarget}
-              />
-            )}
+    <div className="game" style={{ background: tableBg.background, ['--tint' as string]: tableBg.tint } as CSSProperties}>
+      <div className="table-vignette" />
+      {/* On a big screen the table keeps a phone's proportions, centred on the felt. */}
+      <div ref={root} className="game-stage">
+        {geo && (
+          <>
+            <div ref={table} className="table-shake">
+              {[1, 2, 3].map((r) => {
+                const seat = (viewSeat + r) % 4;
+                const count = dealCounts ? dealCounts[seat] : game.handCounts[seat];
+                return <Seat key={seat} room={room} game={game} seat={seat} rel={r} geo={geo} viewSeat={viewSeat} count={count} onTap={setTarget} />;
+              })}
+              {spectating && seatMember(room, 0) && (
+                <Seat
+                  room={room}
+                  game={game}
+                  seat={0}
+                  rel={0}
+                  geo={geo}
+                  viewSeat={viewSeat}
+                  count={dealCounts ? dealCounts[0] : game.handCounts[0]}
+                  onTap={setTarget}
+                />
+              )}
 
-            <TrickLayer
-              geo={geo}
-              rel={rel}
-              face={face}
-              fourColor={fourColor}
-              backOf={backOf}
-              plays={plays}
-              slams={slams}
-              origins={origins.current}
-              winner={game.phase === 'trickEnd' ? game.trickWinner : null}
-              last={game.lastTrick}
+              <TrickLayer
+                geo={geo}
+                rel={rel}
+                face={face}
+                fourColor={fourColor}
+                backOf={backOf}
+                plays={plays}
+                slams={slams}
+                origins={origins.current}
+                winner={game.phase === 'trickEnd' ? game.trickWinner : null}
+                last={game.lastTrick}
+              />
+
+              {game.phase === 'hakemSelect' && <HakemSelect game={game} geo={geo} rel={rel} room={room} face={face} fourColor={fourColor} mySeat={mySeat} />}
+              {(game.phase === 'shuffle' || game.phase === 'cut') && (
+                <DeckStage game={game} geo={geo} room={room} mySeat={mySeat} back={backOf(game.hakem ?? 0)} />
+              )}
+              {(game.phase === 'deal1' || game.phase === 'deal2') && (
+                <DealLayer key={`${game.phase}-${game.phaseStartedAt}`} game={game} geo={geo} rel={rel} back={backOf(game.hakem ?? 0)} />
+              )}
+              {game.phase === 'deal2' && game.trump && <TrumpAnnounce key={game.phaseStartedAt} suit={game.trump} game={game} />}
+              {game.phase === 'trump' && (game.hakem === mySeat ? <TrumpPicker hand={game.hand} /> : <TrumpWaiting name={hakemName} />)}
+
+              {!spectating && me && (
+                <div className={`mybar ltr${myAction ? ' acting' : ''}`} style={{ top: geo.myBarY }}>
+                  <div className="mybar-me" data-member={me.id}>
+                    <Avatar
+                      profile={me.profile}
+                      size={44}
+                      timer={timerFor(game, mySeat!)}
+                      hakem={game.hakem === mySeat}
+                      speaking={speakingMe}
+                      onClick={() => setEmotes(true)}
+                    />
+                  </div>
+                  <div className="mybar-status">
+                    {myTurn ? (
+                      <span className="turn-pill">✨ {t('your_turn')}</span>
+                    ) : game.phase === 'play' && game.turn !== null ? (
+                      <span className="wait-pill">⏳ {displayName(seatMember(room, game.turn)?.profile, lang)}</span>
+                    ) : null}
+                  </div>
+                  <div className="mybar-actions">
+                    <button type="button" className="round-btn" onClick={() => setEmotes(true)} aria-label={t('emotes')}>
+                      😊
+                    </button>
+                    <ChatButton room={room} onOpen={() => setChat(true)} />
+                    <VoiceButton size={44} inVoiceCount={inVoice} />
+                  </div>
+                </div>
+              )}
+
+              {mySeat !== null && (
+                <Hand geo={geo} cards={hand} legal={legal} face={face} fourColor={fourColor} enabled={handEnabled} onPlay={onPlay} onReject={onReject} />
+              )}
+
+              {showTip && (
+                <div className="tip" style={{ top: Math.min(geo.myBarY - 78, geo.center.y + geo.trickCardH * 0.9 + 12) }}>
+                  {!seenTips.includes('drag') ? t('drag_hint') : t('flick_hint')}
+                </div>
+              )}
+
+              <FxLayer room={room} geo={geo} rel={rel} mySeat={mySeat} table={table} />
+            </div>
+
+            <TopBar
+              game={game}
+              viewSeat={viewSeat}
+              spectating={spectating}
+              onMenu={() => setMenu(true)}
+              onTrump={() => game.trump && toast(t('trump_is', { suit: t(`suit_${game.trump}`) }), 'info', 1500)}
             />
 
-            {game.phase === 'hakemSelect' && <HakemSelect game={game} geo={geo} rel={rel} room={room} face={face} fourColor={fourColor} mySeat={mySeat} />}
-            {(game.phase === 'shuffle' || game.phase === 'cut') && (
-              <DeckStage game={game} geo={geo} room={room} mySeat={mySeat} back={backOf(game.hakem ?? 0)} />
-            )}
-            {(game.phase === 'deal1' || game.phase === 'deal2') && (
-              <DealLayer key={`${game.phase}-${game.phaseStartedAt}`} game={game} geo={geo} rel={rel} back={backOf(game.hakem ?? 0)} />
-            )}
-            {game.phase === 'deal2' && game.trump && <TrumpAnnounce key={game.phaseStartedAt} suit={game.trump} game={game} />}
-            {game.phase === 'trump' && (game.hakem === mySeat ? <TrumpPicker hand={game.hand} /> : <TrumpWaiting name={hakemName} />)}
-
-            {!spectating && me && (
-              <div className={`mybar ltr${myAction ? ' acting' : ''}`} style={{ top: geo.myBarY }}>
-                <div className="mybar-me" data-member={me.id}>
-                  <Avatar
-                    profile={me.profile}
-                    size={44}
-                    timer={timerFor(game, mySeat!)}
-                    hakem={game.hakem === mySeat}
-                    speaking={speakingMe}
-                    onClick={() => setEmotes(true)}
-                  />
-                </div>
-                <div className="mybar-status">
-                  {myTurn ? (
-                    <span className="turn-pill">✨ {t('your_turn')}</span>
-                  ) : game.phase === 'play' && game.turn !== null ? (
-                    <span className="wait-pill">⏳ {displayName(seatMember(room, game.turn)?.profile, lang)}</span>
-                  ) : null}
-                </div>
-                <div className="mybar-actions">
-                  <button type="button" className="round-btn" onClick={() => setEmotes(true)} aria-label={t('emotes')}>
-                    😊
-                  </button>
-                  <ChatButton room={room} onOpen={() => setChat(true)} />
-                  <VoiceButton size={44} inVoiceCount={inVoice} />
-                </div>
+            {spectating && (
+              <div className="spectating-bar">
+                👁️ {t('spectating')}
+                <ChatButton room={room} onOpen={() => setChat(true)} />
+                <button type="button" className="round-btn" onClick={() => setEmotes(true)}>
+                  😊
+                </button>
+                <VoiceButton size={40} inVoiceCount={inVoice} />
               </div>
             )}
 
-            {mySeat !== null && (
-              <Hand geo={geo} cards={hand} legal={legal} face={face} fourColor={fourColor} enabled={handEnabled} onPlay={onPlay} onReject={onReject} />
-            )}
+            {away && <AwayBanner onBack={() => net.back()} />}
+            <SurrenderPrompt game={game} mySeat={mySeat} />
+            {game.phase === 'handEnd' && game.handResult && <HandResult game={game} room={room} viewSeat={viewSeat} spectating={spectating} />}
+            {game.phase === 'matchEnd' && <MatchResult game={game} room={room} viewSeat={viewSeat} spectating={spectating} />}
+          </>
+        )}
+      </div>
 
-            {showTip && (
-              <div className="tip" style={{ top: Math.min(geo.myBarY - 78, geo.center.y + geo.trickCardH * 0.9 + 12) }}>
-                {!seenTips.includes('drag') ? t('drag_hint') : t('flick_hint')}
-              </div>
-            )}
-
-            <FxLayer room={room} geo={geo} rel={rel} mySeat={mySeat} table={table} />
-          </div>
-
-          <TopBar
-            game={game}
-            viewSeat={viewSeat}
-            spectating={spectating}
-            onMenu={() => setMenu(true)}
-            onTrump={() => game.trump && toast(t('trump_is', { suit: t(`suit_${game.trump}`) }), 'info', 1500)}
-          />
-
-          {spectating && (
-            <div className="spectating-bar">
-              👁️ {t('spectating')}
-              <ChatButton room={room} onOpen={() => setChat(true)} />
-              <button type="button" className="round-btn" onClick={() => setEmotes(true)}>
-                😊
-              </button>
-              <VoiceButton size={40} inVoiceCount={inVoice} />
-            </div>
-          )}
-
-          {away && <AwayBanner onBack={() => net.back()} />}
-          <SurrenderPrompt game={game} mySeat={mySeat} />
-          {game.phase === 'handEnd' && game.handResult && <HandResult game={game} room={room} viewSeat={viewSeat} spectating={spectating} />}
-          {game.phase === 'matchEnd' && <MatchResult game={game} room={room} viewSeat={viewSeat} spectating={spectating} />}
-        </>
-      )}
-
-      {geo && geo.landscape && geo.h < 500 && (
+      {geo && geo.landscape && geo.h < 500 && coarsePointer && (
         <div className="rotate-hint">
           <div className="rotate-phone">📱</div>
           <b>{t('rotate_title')}</b>

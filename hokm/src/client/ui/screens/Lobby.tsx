@@ -13,6 +13,7 @@ import { ChatButton, ChatSheet } from '../components/Chat';
 import { Dialog, Segmented, Sheet } from '../components/common';
 import { shareRoom } from '../components/share';
 import { VoiceButton } from '../components/VoiceButton';
+import { useVoice } from '../../voice/mesh';
 
 // Seats drawn around a little table, rotated so you're always at the bottom.
 const SPOTS = [
@@ -35,6 +36,7 @@ export function Lobby({ room }: { room: RoomView }) {
   const full = room.seats.every(Boolean);
   const spectators = room.members.filter((m) => m.seat === null);
   const inVoice = room.members.filter((m) => m.inVoice).length;
+  const speaking = useVoice((s) => s.speaking);
 
   const start = async () => {
     sfx.play('stamp');
@@ -82,7 +84,7 @@ export function Lobby({ room }: { room: RoomView }) {
                       size={62}
                       showLevel
                       dim={!m.online}
-                      speaking={false}
+                      speaking={!!speaking[m.id]}
                       badge={m.profile.bot ? t('bot_badge') : m.id === room.hostId ? t('host') : null}
                       onClick={() => m.id !== room.you && setTarget(m)}
                     />

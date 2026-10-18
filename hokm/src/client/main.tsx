@@ -20,8 +20,8 @@ import { mesh, voice } from './voice/mesh';
 // A handle for automated tests and curious players; it holds nothing secret.
 (window as unknown as { __hokm: unknown }).__hokm = { app, net, settings, voice, mesh };
 
-// Browsers keep audio locked until a touch; open it on every touch until it's running.
-window.addEventListener('pointerdown', () => sfx.unlock(), { passive: true });
+// Browsers keep audio locked until a tap. For touch, only the end of a tap counts as one.
+for (const type of ['pointerdown', 'pointerup', 'touchend', 'keydown']) window.addEventListener(type, () => sfx.unlock(), { passive: true });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

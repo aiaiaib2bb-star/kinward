@@ -62,6 +62,7 @@ export class Room {
   private flushQueued = false;
   private fxQueue: FxEvent[] = [];
   private lobbyTimer: NodeJS.Timeout | null = null;
+  private hostTimer: NodeJS.Timeout | null = null;
 
   constructor(
     readonly code: string,
@@ -125,7 +126,7 @@ export class Room {
     m.socket = null;
     m.inVoice = false;
     m.micOn = false;
-    this.afterPresenceChange();
+    this.afterPresenceChange(false);
   }
 
   leave(id: string) {
@@ -145,10 +146,24 @@ export class Room {
     this.afterPresenceChange();
   }
 
-  private afterPresenceChange() {
+  /**
+   * Someone came or went. A host who leaves hands the table over at once; a
+   * host whose connection merely dropped (a reload, a tunnel) gets a little
+   * while to come back first.
+   */
+  private afterPresenceChange(left = true) {
     if (!this.members.get(this.hostId)?.socket) {
-      const next = this.onlineHumans[0];
-      if (next) this.hostId = next.id;
+      if (left || !this.members.has(this.hostId)) this.passHost();
+      else {
+        if (this.hostTimer) clearTimeout(this.hostTimer);
+        this.hostTimer = setTimeout(() => {
+          this.hostTimer = null;
+          if (!this.members.get(this.hostId)?.socket) {
+            this.passHost();
+            this.touch();
+          }
+        }, 20_000);
+      }
     }
     if (this.onlineHumans.length === 0) {
       this.lastActive = Date.now();
@@ -158,6 +173,11 @@ export class Room {
     }
     this.checkRematch();
     this.touch();
+  }
+
+  private passHost() {
+    const next = this.onlineHumans[0];
+    if (next) this.hostId = next.id;
   }
 
   get isEmpty(): boolean {
@@ -415,6 +435,7 @@ export class Room {
   dispose() {
     this.match?.dispose();
     this.clearLobbyTimer();
+    if (this.hostTimer) clearTimeout(this.hostTimer);
   }
 
   // ——— Game actions ———

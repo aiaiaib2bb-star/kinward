@@ -38,9 +38,11 @@ export function VoiceButton({ size = 46, inVoiceCount = 0 }: { size?: number; in
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
-  const down = () => {
+  const down = (e: React.PointerEvent<HTMLButtonElement>) => {
     longPressed.current = false;
     if (!joined) return;
+    // Keep the press even if the finger drifts off the button while talking.
+    e.currentTarget.setPointerCapture(e.pointerId);
     pressTimer.current = window.setTimeout(() => {
       longPressed.current = true;
       buzz('select');

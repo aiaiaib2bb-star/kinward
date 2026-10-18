@@ -1,0 +1,21 @@
+# Render Blueprint. Render reads blueprints from the root of a repository, so
+# either move this file to the repository root (rootDir below points back
+# here), or create the web service by hand with the same settings.
+services:
+  - type: web
+    name: hokm
+    runtime: node
+    rootDir: hokm
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # Signs player profiles. Generated once and kept across deploys, so
+      # everyone's coins survive restarts on Render's temporary disk.
+      - key: HOKM_SECRET
+        generateValue: true

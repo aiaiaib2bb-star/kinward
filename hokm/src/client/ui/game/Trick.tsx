@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Card } from '../../../shared/cards';
 import type { Play } from '../../../shared/rules';
+import { sfx } from '../../audio/sfx';
 import { settings } from '../../state/settings';
 import { FlipCard, PlayingCard } from '../components/Card';
 import type { PlayOrigin } from './Hand';
@@ -48,6 +49,8 @@ function TrickCard({ play, origin, power, winning, ...c }: Common & { play: Play
       : [{ transform: from }, { transform: final }];
     el.animate(frames, { duration, easing: slam ? 'cubic-bezier(.55,0,.7,.2)' : 'cubic-bezier(.2,.75,.25,1)' });
     if (!origin) {
+      // Someone else's card landing. (Slams make their own noise.)
+      if (!slam) setTimeout(() => sfx.play('card'), duration * 0.8);
       el.querySelector('.flip-inner')?.animate(
         [{ transform: 'rotateY(180deg)' }, { transform: 'rotateY(180deg)', offset: 0.25 }, { transform: 'rotateY(0deg)' }],
         {

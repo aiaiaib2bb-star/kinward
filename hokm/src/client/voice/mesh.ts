@@ -220,10 +220,11 @@ class Mesh {
       }
     }, 3000);
     app.subscribe(() => this.sync(app.get().room));
-    // Retry blocked playback on the next touch anywhere.
-    window.addEventListener('pointerdown', () => {
+    // Retry blocked playback on the next tap anywhere (the end of a touch is what counts as one).
+    const retry = () => {
       if (voice.get().needsTap) for (const p of this.peers.values()) p.play();
-    });
+    };
+    for (const type of ['pointerup', 'touchend', 'keydown']) window.addEventListener(type, retry, { passive: true });
   }
 
   audioHost(): HTMLDivElement {

@@ -123,17 +123,23 @@ export function Hand({ geo, cards, legal, face, fourColor, enabled, onPlay, onRe
 
   const canPlay = (card: Card) => myTurn && legal!.has(card);
 
+  /**
+   * How fast the finger was moving as it let go, over the last tenth of a
+   * second of actual movement. The lift itself often arrives a beat after the
+   * last move, at the same spot; that pause doesn't make a flick a drop.
+   */
   const velocity = () => {
     const s = samples.current;
-    const last = s[s.length - 1];
-    let first = s[0];
-    for (const p of s)
-      if (last.t - p.t <= 90) {
-        first = p;
-        break;
-      }
-    const dt = Math.max(1, last.t - first.t);
-    return { vx: (last.x - first.x) / dt, vy: (last.y - first.y) / dt };
+    const end = s[s.length - 1];
+    let i = s.length - 1;
+    while (i > 0 && s[i].x === s[i - 1].x && s[i].y === s[i - 1].y) i--;
+    const lastMove = s[i];
+    if (end.t - lastMove.t > 140) return { vx: 0, vy: 0 };
+    let j = i;
+    while (j > 0 && lastMove.t - s[j - 1].t <= 100) j--;
+    const first = s[j === i ? Math.max(0, i - 1) : j];
+    const dt = Math.max(8, lastMove.t - first.t);
+    return { vx: (lastMove.x - first.x) / dt, vy: (lastMove.y - first.y) / dt };
   };
 
   const power = (vx: number, vy: number) => {
@@ -160,7 +166,7 @@ export function Hand({ geo, cards, legal, face, fourColor, enabled, onPlay, onRe
     el.setPointerCapture(e.pointerId);
     const box = layer.current?.getBoundingClientRect();
     origin.current = { x: box?.left ?? 0, y: box?.top ?? 0 };
-    const start = { x: e.clientX - origin.current.x, y: e.clientY - origin.current.y, t: performance.now() };
+    const start = { x: e.clientX - origin.current.x, y: e.clientY - origin.current.y, t: e.timeStamp };
     samples.current = [start];
     const i = indexAt(start.x, start.y) ?? index;
     gesture.current = { kind: 'press', id: e.pointerId, start, index: i, moved: false, el };
@@ -172,7 +178,7 @@ export function Hand({ geo, cards, legal, face, fourColor, enabled, onPlay, onRe
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const g = gesture.current;
     if (g.kind === 'none' || e.pointerId !== g.id) return;
-    const p = { x: e.clientX - origin.current.x, y: e.clientY - origin.current.y, t: performance.now() };
+    const p = { x: e.clientX - origin.current.x, y: e.clientY - origin.current.y, t: e.timeStamp };
     samples.current.push(p);
     if (samples.current.length > 8) samples.current.shift();
     if (g.kind === 'press') {
@@ -225,7 +231,7 @@ export function Hand({ geo, cards, legal, face, fourColor, enabled, onPlay, onRe
     gesture.current = { kind: 'none' };
     const px = e.clientX - origin.current.x;
     const py = e.clientY - origin.current.y;
-    samples.current.push({ x: px, y: py, t: performance.now() });
+    samples.current.push({ x: px, y: py, t: e.timeStamp });
     if (g.kind === 'drag') {
       const { vx, vy } = velocity();
       const dy = py - g.start.y;
@@ -247,7 +253,7 @@ export function Hand({ geo, cards, legal, face, fourColor, enabled, onPlay, onRe
     const card = cards[g.index];
     setHover(null);
     if (!card) return;
-    const quick = performance.now() - g.start.t < 450;
+    const quick = e.timeStamp - g.start.t < 450;
     if (selected === card && !g.moved && quick) {
       if (canPlay(card)) {
         const pose = poses[g.index];
@@ -326,10 +332,7 @@ export function Hand({ geo, cards, legal, face, fourColor, enabled, onPlay, onRe
         );
       })}
       {selected && selectedIndex >= 0 && hover === null && !drag && (
-        <div
-          className="play-hint"
-          style={{ transform: `translate(${poses[selectedIndex].x + cw / 2}px, ${poses[selectedIndex].y - ch * LIFT - 30}px) translateX(-50%)` }}
-        >
+        <div className="play-hint" style={{ left: poses[selectedIndex].x + cw / 2, top: poses[selectedIndex].y - ch * LIFT - 30 }}>
           <span>{canPlay(selected) ? t('tap_to_play') : myTurn ? '🚫' : t('not_your_turn')}</span>
           {canPlay(selected) && (
             <button type="button" className="slam-mini" onClick={slamSelected} aria-label={t('slam_word')}>

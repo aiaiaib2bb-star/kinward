@@ -135,7 +135,7 @@ export const ITEMS: readonly Item[] = [
     emotes: ['👑', '💎', '🏆', '💰', '🗡️', '🛡️', '🎯', '🧿'],
   }),
   item('phrases_basic', 'emotes', 0, 'common', 'Table Talk', 'حرف‌های سر میز', {
-    emotes: ['p_bahbah', 'p_eyval', 'p_luck', 'p_hurry', 'p_sorry', 'p_nice', 'p_think', 'p_gg', 'p_kot', 'p_watch'],
+    emotes: ['p_bahbah', 'p_eyval', 'p_hokm', 'p_luck', 'p_hurry', 'p_sorry', 'p_nice', 'p_think', 'p_gg', 'p_kot', 'p_watch'],
   }),
   item('phrases_spicy', 'emotes', 350, 'rare', 'Spicy Talk', 'حرف‌های تند', {
     emotes: ['p_cry', 'p_again', 'p_trump', 'p_oops', 'p_tea', 'p_master'],
@@ -145,6 +145,7 @@ export const ITEMS: readonly Item[] = [
 export const PHRASES: Record<string, { en: string; fa: string }> = {
   p_bahbah: { en: 'Bah bah! 👌', fa: 'به به! 👌' },
   p_eyval: { en: 'Eyval! 👏', fa: 'ایول! 👏' },
+  p_hokm: { en: 'Hokm bede! 👑', fa: 'حکم بده! 👑' },
   p_luck: { en: 'Pure luck 🍀', fa: 'شانسی بود 🍀' },
   p_hurry: { en: 'Hurry up ⏳', fa: 'زود باش ⏳' },
   p_sorry: { en: 'Sorry partner 🙏', fa: 'ببخشید رفیق 🙏' },

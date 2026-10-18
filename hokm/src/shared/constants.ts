@@ -79,8 +79,8 @@ export const LIMITS = {
 
 /** Release speeds (px/ms) at which a thrown card becomes a slam, and at which the slam is at full power. */
 export const SLAM = {
-  minSpeed: 1.7,
-  maxSpeed: 4.6,
+  minSpeed: 2.3,
+  maxSpeed: 5.5,
   /** Server-side: a play with at least this power shakes the table. */
   threshold: 0.05,
 } as const;

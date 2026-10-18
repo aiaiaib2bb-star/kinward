@@ -95,7 +95,7 @@ export function Profile() {
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               className="text-input"
-              style={{ fontSize: 14, height: 48 }}
+              style={{ fontSize: 16, height: 48 }}
               value={restoreCode}
               placeholder={t('restore_placeholder')}
               onChange={(e) => setRestoreCode(e.target.value)}

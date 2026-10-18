@@ -94,15 +94,17 @@ io.on('connection', (raw: GameSocket) => {
     },
   }) as GameSocket;
 
-  // A token bucket: bursts are fine, floods are not.
-  let tokens = 40;
-  let refilled = Date.now();
-  socket.use((_packet, next) => {
+  // Token buckets: bursts are fine, floods are not. Voice negotiation gets its
+  // own, roomier one — a phone on mobile data sends a flurry of ICE candidates
+  // to every other player at once, and dropping them breaks the call.
+  const buckets = { game: { tokens: 40, cap: 40, rate: 20, at: Date.now() }, voice: { tokens: 240, cap: 240, rate: 60, at: Date.now() } };
+  socket.use(([event], next) => {
+    const b = event === 'voice:signal' ? buckets.voice : buckets.game;
     const now = Date.now();
-    tokens = Math.min(40, tokens + ((now - refilled) / 1000) * 20);
-    refilled = now;
-    if (tokens < 1) return next(new Error('slow_down'));
-    tokens -= 1;
+    b.tokens = Math.min(b.cap, b.tokens + ((now - b.at) / 1000) * b.rate);
+    b.at = now;
+    if (b.tokens < 1) return next(new Error('slow_down'));
+    b.tokens -= 1;
     next();
   });
   socket.on('error', () => {});

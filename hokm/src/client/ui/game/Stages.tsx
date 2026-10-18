@@ -220,7 +220,7 @@ export function HakemSelect({
     prevShown.current = shown;
   }, [shown, reveals]);
 
-  const cw = Math.round(geo.trickCard * 0.78);
+  const cw = Math.round(geo.trickCard * 0.62);
   const perSeat = [0, 0, 0, 0];
   const finished = shown === reveals.length;
   const winner = reveals[reveals.length - 1];
@@ -230,11 +230,12 @@ export function HakemSelect({
       {reveals.slice(0, shown).map((r, i) => {
         const k = perSeat[r.seat]++;
         const seatPos = geo.seats[rel(r.seat)];
-        const target = { x: geo.center.x + (seatPos.x - geo.center.x) * 0.48 + k * 3, y: geo.center.y + (seatPos.y - geo.center.y) * 0.48 + k * 2 };
+        // Each card lands in front of the player it was dealt to.
+        const target = { x: geo.center.x + (seatPos.x - geo.center.x) * 0.66 + k * 3, y: geo.center.y + (seatPos.y - geo.center.y) * 0.66 + k * 2 };
         const isAce = finished && i === reveals.length - 1;
         return <RevealCard key={i} card={r.card} from={geo.center} to={target} cw={cw} face={face} fourColor={fourColor} ace={isAce} />;
       })}
-      <div className="stage-banner" style={{ top: geo.center.y - 18 }}>
+      <div className="stage-banner" style={{ top: geo.center.y }}>
         {finished && winner && now - start > reveals.length * T.hakemRevealStep ? (
           <span className="pop">👑 {name === null ? t('you_are_hakem') : t('is_hakem', { name })}</span>
         ) : (
@@ -284,6 +285,7 @@ function RevealCard({
 const DECK_LINES = 52;
 
 export function DeckStage({ game, geo, room, mySeat, back }: { game: GameView; geo: Geo; room: RoomView; mySeat: number | null; back: string }) {
+  const realDeck = room.settings.shuffleMode === 'real' && game.handNumber > 1;
   const t = useT();
   const lang = useLang();
   const shuffling = game.phase === 'shuffle';
@@ -327,6 +329,7 @@ export function DeckStage({ game, geo, room, mySeat, back }: { game: GameView; g
           mine ? (
             <>
               <div className="stage-title">{t('you_shuffle')}</div>
+              {realDeck && <div className="stage-sub">{t('deck_remembers')}</div>}
               <div className="stage-buttons">
                 <button type="button" className="btn btn-turq btn-small" onClick={() => doOp('riffle')}>
                   🔀 {t('riffle')}
@@ -353,11 +356,9 @@ export function DeckStage({ game, geo, room, mySeat, back }: { game: GameView; g
           <>
             <div className="stage-title">{game.deckOps.cuts ? t('cut_count', { n: op?.count ?? 0 }) : t('you_cut')}</div>
             <div className="stage-buttons">
-              {!game.deckOps.cuts && (
-                <button type="button" className="btn btn-glass btn-small" onClick={() => net.cut(20 + Math.floor(Math.random() * 13))}>
-                  ✂️ {t('quick_cut')}
-                </button>
-              )}
+              <button type="button" className="btn btn-glass btn-small" onClick={() => net.cut(20 + Math.floor(Math.random() * 13))}>
+                ✂️ {game.deckOps.cuts ? t('cut_again') : t('quick_cut')}
+              </button>
               {game.deckOps.cuts > 0 && (
                 <button
                   type="button"
