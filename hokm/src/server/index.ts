@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import type { Ack, ClientToServer, Lang, Profile, RoomSettings, ServerToClient } from '../shared/protocol';
 import type { Rng } from '../shared/shuffle';
 import { gifsEnabled, searchGifs, vettedGif } from './gifs';
-import { iceServers } from './ice';
+import { iceServers, relayStatus } from './ice';
 import { ProfileStore } from './profiles';
 import { type GameSocket, Room } from './room';
 import { serveStatic } from './static';
@@ -59,12 +59,15 @@ const httpServer = http.createServer((req, res) => {
   // Counts only, no names: lets a deploy wait until nobody is mid-game (a restart ends every table).
   if (req.url === '/status') {
     const tables = [...rooms.values()];
-    const status = {
-      online: sessions.size,
-      tables: tables.length,
-      gamesInProgress: tables.filter((r) => r.match && !r.match.ended && r.onlineHumans.length > 0).length,
-    };
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(status));
+    void relayStatus().then((voiceRelay) => {
+      const status = {
+        online: sessions.size,
+        tables: tables.length,
+        gamesInProgress: tables.filter((r) => r.match && !r.match.ended && r.onlineHumans.length > 0).length,
+        voiceRelay,
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(status));
+    });
     return;
   }
   serveStatic(CLIENT_DIR, req, res);

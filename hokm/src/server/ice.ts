@@ -51,3 +51,15 @@ export async function iceServers(): Promise<RTCIceServerLike[]> {
   const extra = [...fromEnv(), ...(await fromCloudflare())];
   return [...PUBLIC_STUN, ...extra];
 }
+
+const hasTurn = (servers: RTCIceServerLike[]) => servers.some((s) => [s.urls].flat().some((u) => /^turns?:/.test(u)));
+
+/**
+ * Which relay voice can fall back on, for the status page: never the
+ * credentials, only whether a TURN server is set up and answering.
+ * 'error' means Cloudflare keys are set but credentials couldn't be fetched.
+ */
+export async function relayStatus(): Promise<'cloudflare' | 'custom' | 'none' | 'error'> {
+  if (process.env.CF_TURN_KEY_ID || process.env.CF_TURN_API_TOKEN) return hasTurn(await fromCloudflare()) ? 'cloudflare' : 'error';
+  return hasTurn(fromEnv()) ? 'custom' : 'none';
+}
